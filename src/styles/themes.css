@@ -1,0 +1,763 @@
+/* ========================================
+   GLOBAL THEME SYSTEM
+   Single source of truth for all colors
+   ======================================== */
+
+/* Default theme - Dark Calm */
+:root,
+html {
+  color-scheme: dark;
+}
+
+:root:not([data-theme]),
+html:not([data-theme]) {
+  /* Core Background Layers */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #212121;
+  
+  /* Surface Layers (Cards, Tables, Panels) */
+  --surface-primary: #2a2a2a;
+  --surface-secondary: #333333;
+  --surface-tertiary: #3d3d3d;
+  --surface-hover: #404040;
+  --surface-active: #4a4a4a;
+  
+  /* Border & Divider */
+  --border-primary: #3d3d3d;
+  --border-secondary: #333333;
+  --border-hover: #4d4d4d;
+  
+  /* Text Colors */
+  --text-primary: #ececec;
+  --text-secondary: #C9D1E3;
+  --text-tertiary: #8a8a8a;
+  --text-disabled: #5a5a5a;
+  
+  /* Accent Colors */
+  --accent-primary: #6ea8fe;
+  --accent-primary-hover: #5d96eb;
+  --accent-primary-bg: rgba(110, 168, 254, 0.15);
+  --accent-secondary: #5390e8;
+  
+  /* Status Colors - Consistent Mapping */
+  --status-progress: #4a9eff;
+  --status-progress-bg: rgba(74, 158, 255, 0.15);
+  --status-progress-text: #6eb3ff;
+  
+  --status-start: #3dd68d;
+  --status-start-bg: rgba(61, 214, 141, 0.15);
+  --status-start-text: #4de19d;
+  
+  --status-burning: #ffa94d;
+  --status-burning-bg: rgba(255, 169, 77, 0.15);
+  --status-burning-text: #ffb866;
+  
+  --status-late: #ff6b6b;
+  --status-late-bg: rgba(255, 107, 107, 0.15);
+  --status-late-text: #ff8383;
+  
+  --status-end: #9775fa;
+  --status-end-bg: rgba(151, 117, 250, 0.15);
+  --status-end-text: #a78bfa;
+  
+  /* Priority Colors - Consistent Mapping */
+  --priority-high: #ff6b6b;
+  --priority-high-bg: rgba(255, 107, 107, 0.15);
+  --priority-high-text: #ff8383;
+  
+  --priority-medium: #ffc078;
+  --priority-medium-bg: rgba(255, 192, 120, 0.15);
+  --priority-medium-text: #ffca8f;
+  
+  --priority-low: #94a3b8;
+  --priority-low-bg: rgba(148, 163, 184, 0.15);
+  --priority-low-text: #a8b6c9;
+  
+  /* Interactive States */
+  --input-bg: #2a2a2a;
+  --input-border: #3d3d3d;
+  --input-focus: #6ea8fe;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.7);
+  
+  /* Overlay System */
+  --overlay-backdrop: rgba(26, 26, 26, 0.32);
+  --overlay-content-bg: #ffffff;
+  --overlay-border: #e5e5e3;
+  --overlay-blur: 10px;
+  --overlay-transition: 200ms ease-out;
+  
+  /* Hover System */
+  --hover-bg: #f0f0ef;
+  --hover-elevation: 0 2px 8px 0 rgba(3, 56, 47, 0.06);
+  --hover-border: #c5d9d0;
+  --hover-dim-opacity: 0.6;
+  --hover-transition: all 150ms ease-out;
+}
+
+/* ========================================
+   THEME 1: DARK CALM (ChatGPT-inspired)
+   ======================================== */
+[data-theme="dark-calm"] {
+  color-scheme: dark;
+  
+  /* Core Background Layers - Premium Deep Dark */
+  --bg-primary: #0E1116;
+  --bg-secondary: #12161D;
+  
+  /* Surface Layers (Cards, Tables, Panels) */
+  --surface-primary: #12161D;
+  --surface-secondary: #151A22;
+  --surface-tertiary: #1C2230;
+  --surface-hover: #1C2230;
+  --surface-active: #222837;
+  
+  /* Border & Divider */
+  --border-primary: #222837;
+  --border-secondary: #1A1F2B;
+  --border-hover: #2A3142;
+  
+  /* Text Colors */
+  --text-primary: #ececec;
+  --text-secondary: #C9D1E3;
+  --text-tertiary: #8a8a8a;
+  --text-disabled: #5a5a5a;
+  
+  /* Accent Colors */
+  --accent-primary: #6ea8fe;
+  --accent-primary-hover: #5d96eb;
+  --accent-primary-bg: rgba(110, 168, 254, 0.15);
+  --accent-secondary: #5390e8;
+  
+  /* Status Colors - Consistent Mapping */
+  --status-progress: #4a9eff;
+  --status-progress-bg: rgba(74, 158, 255, 0.15);
+  --status-progress-text: #6eb3ff;
+  
+  --status-start: #3dd68d;
+  --status-start-bg: rgba(61, 214, 141, 0.15);
+  --status-start-text: #4de19d;
+  
+  --status-burning: #ffa94d;
+  --status-burning-bg: rgba(255, 169, 77, 0.15);
+  --status-burning-text: #ffb866;
+  
+  --status-late: #ff6b6b;
+  --status-late-bg: rgba(255, 107, 107, 0.15);
+  --status-late-text: #ff8383;
+  
+  --status-end: #9775fa;
+  --status-end-bg: rgba(151, 117, 250, 0.15);
+  --status-end-text: #a78bfa;
+  
+  /* Priority Colors - Consistent Mapping */
+  --priority-high: #ff6b6b;
+  --priority-high-bg: rgba(255, 107, 107, 0.15);
+  --priority-high-text: #ff8383;
+  
+  --priority-medium: #ffc078;
+  --priority-medium-bg: rgba(255, 192, 120, 0.15);
+  --priority-medium-text: #ffca8f;
+  
+  --priority-low: #94a3b8;
+  --priority-low-bg: rgba(148, 163, 184, 0.15);
+  --priority-low-text: #a8b6c9;
+  
+  /* Interactive States */
+  --input-bg: #2a2a2a;
+  --input-border: #3d3d3d;
+  --input-focus: #6ea8fe;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.7);
+  
+  /* Overlay System */
+  --overlay-backdrop: rgba(0, 0, 0, 0.65);
+  --overlay-content-bg: #2a2a2a;
+  --overlay-border: #3d3d3d;
+  --overlay-blur: 8px;
+  
+  /* Hover System */
+  --hover-bg: #333333;
+  --hover-elevation: 0 2px 8px 0 rgb(0 0 0 / 0.6);
+  --hover-border: #4d4d4d;
+  --hover-dim-opacity: 0.5;
+  --hover-transition: all 150ms ease-out;
+}
+
+/* ========================================
+   THEME 2: GRAPHITE BLUE
+   ======================================== */
+[data-theme="graphite-blue"] {
+  color-scheme: dark;
+  
+  /* Core Background Layers */
+  --bg-primary: #1a2332;
+  --bg-secondary: #1f2937;
+  
+  /* Surface Layers */
+  --surface-primary: #2d3a4a;
+  --surface-secondary: #364557;
+  --surface-tertiary: #3f5064;
+  --surface-hover: #4a5b71;
+  --surface-active: #54667d;
+  
+  /* Border & Divider */
+  --border-primary: #3f5064;
+  --border-secondary: #364557;
+  --border-hover: #4a5b71;
+  
+  /* Text Colors */
+  --text-primary: #e8eef5;
+  --text-secondary: #b8c5d6;
+  --text-tertiary: #8b9bae;
+  --text-disabled: #5f6f82;
+  
+  /* Accent Colors */
+  --accent-primary: #5b9bf5;
+  --accent-primary-hover: #4a8ae3;
+  --accent-primary-bg: rgba(91, 155, 245, 0.15);
+  --accent-secondary: #4a8ae3;
+  
+  /* Status Colors */
+  --status-progress: #5b9bf5;
+  --status-progress-bg: rgba(91, 155, 245, 0.15);
+  --status-progress-text: #6faaf7;
+  
+  --status-start: #34d399;
+  --status-start-bg: rgba(52, 211, 153, 0.15);
+  --status-start-text: #4ddaa7;
+  
+  --status-burning: #fb923c;
+  --status-burning-bg: rgba(251, 146, 60, 0.15);
+  --status-burning-text: #fca55c;
+  
+  --status-late: #f87171;
+  --status-late-bg: rgba(248, 113, 113, 0.15);
+  --status-late-text: #fa8a8a;
+  
+  --status-end: #a78bfa;
+  --status-end-bg: rgba(167, 139, 250, 0.15);
+  --status-end-text: #b89ffb;
+  
+  /* Priority Colors */
+  --priority-high: #f87171;
+  --priority-high-bg: rgba(248, 113, 113, 0.15);
+  --priority-high-text: #fa8a8a;
+  
+  --priority-medium: #fbbf24;
+  --priority-medium-bg: rgba(251, 191, 36, 0.15);
+  --priority-medium-text: #fcc844;
+  
+  --priority-low: #94a3b8;
+  --priority-low-bg: rgba(148, 163, 184, 0.15);
+  --priority-low-text: #a8b6c9;
+  
+  /* Interactive States */
+  --input-bg: #2d3a4a;
+  --input-border: #3f5064;
+  --input-focus: #5b9bf5;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.6);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.7);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.8);
+  
+  /* Overlay System */
+  --overlay-backdrop: rgba(0, 0, 0, 0.82);
+  --overlay-content-bg: #2d3a4a;
+  --overlay-border: #3f5064;
+  --overlay-blur: 12px;
+  
+  /* Hover System */
+  --hover-bg: #364557;
+  --hover-elevation: 0 2px 8px 0 rgb(0 0 0 / 0.7);
+  --hover-border: #4a5b71;
+  --hover-dim-opacity: 0.5;
+  --hover-transition: all 150ms ease-out;
+}
+
+/* ========================================
+   THEME 3: LIGHT SOFT
+   ======================================== */
+[data-theme="light-soft"] {
+  color-scheme: light;
+  
+  /* Core Background Layers */
+  --bg-primary: #f7f7f5;
+  --bg-secondary: #f0f0ee;
+  
+  /* Surface Layers */
+  --surface-primary: #ffffff;
+  --surface-secondary: #fafaf9;
+  --surface-tertiary: #f3f3f2;
+  --surface-hover: #f0f0ef;
+  --surface-active: #e8e8e7;
+  
+  /* Border & Divider */
+  --border-primary: #e5e5e3;
+  --border-secondary: #f0f0ee;
+  --border-hover: #d4d4d2;
+  
+  /* Text Colors */
+  --text-primary: #1a1a1a;
+  --text-secondary: #525252;
+  --text-tertiary: #8a8a8a;
+  --text-disabled: #b5b5b5;
+  
+  /* Accent Colors */
+  --accent-primary: #5b8def;
+  --accent-primary-hover: #4a7cd6;
+  --accent-primary-bg: rgba(91, 141, 239, 0.1);
+  --accent-secondary: #4a7cd6;
+  
+  /* Status Colors */
+  --status-progress: #3b82f6;
+  --status-progress-bg: rgba(59, 130, 246, 0.1);
+  --status-progress-text: #2563eb;
+  
+  --status-start: #10b981;
+  --status-start-bg: rgba(16, 185, 129, 0.1);
+  --status-start-text: #059669;
+  
+  --status-burning: #f59e0b;
+  --status-burning-bg: rgba(245, 158, 11, 0.1);
+  --status-burning-text: #d97706;
+  
+  --status-late: #ef4444;
+  --status-late-bg: rgba(239, 68, 68, 0.1);
+  --status-late-text: #dc2626;
+  
+  --status-end: #8b5cf6;
+  --status-end-bg: rgba(139, 92, 246, 0.1);
+  --status-end-text: #7c3aed;
+  
+  /* Priority Colors */
+  --priority-high: #ef4444;
+  --priority-high-bg: rgba(239, 68, 68, 0.1);
+  --priority-high-text: #dc2626;
+  
+  --priority-medium: #f59e0b;
+  --priority-medium-bg: rgba(245, 158, 11, 0.1);
+  --priority-medium-text: #d97706;
+  
+  --priority-low: #6b7280;
+  --priority-low-bg: rgba(107, 114, 128, 0.1);
+  --priority-low-text: #4b5563;
+  
+  /* Interactive States */
+  --input-bg: #ffffff;
+  --input-border: #e5e5e3;
+  --input-focus: #5b8def;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  
+  /* Overlay System */
+  --overlay-backdrop: rgba(0, 0, 0, 0.60);
+  --overlay-content-bg: #ffffff;
+  --overlay-border: #e5e5e3;
+  --overlay-blur: 12px;
+  
+  /* Hover System */
+  --hover-bg: #f0f0ef;
+  --hover-elevation: 0 2px 8px 0 rgba(3, 56, 47, 0.06);
+  --hover-border: #c5d9d0;
+  --hover-dim-opacity: 0.6;
+  --hover-transition: all 150ms ease-out;
+}
+
+/* ========================================
+   THEME 4: WARM SAND
+   ======================================== */
+[data-theme="warm-sand"] {
+  color-scheme: light;
+  
+  /* Core Background Layers */
+  --bg-primary: #f5f1ea;
+  --bg-secondary: #ede9e0;
+  
+  /* Surface Layers */
+  --surface-primary: #fefdfb;
+  --surface-secondary: #f9f8f5;
+  --surface-tertiary: #f3f1ec;
+  --surface-hover: #eeece6;
+  --surface-active: #e6e3dc;
+  
+  /* Border & Divider */
+  --border-primary: #e5e0d5;
+  --border-secondary: #ebe7dc;
+  --border-hover: #d8d3c8;
+  
+  /* Text Colors */
+  --text-primary: #2a2520;
+  --text-secondary: #5a554d;
+  --text-tertiary: #8a857a;
+  --text-disabled: #b5b0a5;
+  
+  /* Accent Colors */
+  --accent-primary: #b8956a;
+  --accent-primary-hover: #a68356;
+  --accent-primary-bg: rgba(184, 149, 106, 0.1);
+  --accent-secondary: #a68356;
+  
+  /* Status Colors */
+  --status-progress: #5b8def;
+  --status-progress-bg: rgba(91, 141, 239, 0.1);
+  --status-progress-text: #4a7cd6;
+  
+  --status-start: #10b981;
+  --status-start-bg: rgba(16, 185, 129, 0.1);
+  --status-start-text: #059669;
+  
+  --status-burning: #d97706;
+  --status-burning-bg: rgba(217, 119, 6, 0.1);
+  --status-burning-text: #b45309;
+  
+  --status-late: #dc2626;
+  --status-late-bg: rgba(220, 38, 38, 0.1);
+  --status-late-text: #b91c1c;
+  
+  --status-end: #8b5cf6;
+  --status-end-bg: rgba(139, 92, 246, 0.1);
+  --status-end-text: #7c3aed;
+  
+  /* Priority Colors */
+  --priority-high: #dc2626;
+  --priority-high-bg: rgba(220, 38, 38, 0.1);
+  --priority-high-text: #b91c1c;
+  
+  --priority-medium: #d97706;
+  --priority-medium-bg: rgba(217, 119, 6, 0.1);
+  --priority-medium-text: #b45309;
+  
+  --priority-low: #6b7280;
+  --priority-low-bg: rgba(107, 114, 128, 0.1);
+  --priority-low-text: #4b5563;
+  
+  /* Interactive States */
+  --input-bg: #fefdfb;
+  --input-border: #e5e0d5;
+  --input-focus: #b8956a;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(42 37 32 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(42 37 32 / 0.08);
+  --shadow-lg: 0 10px 15px -3px rgb(42 37 32 / 0.1);
+  
+  /* Overlay System */
+  --overlay-backdrop: rgba(42, 37, 32, 0.35);
+  --overlay-content-bg: #fefdfb;
+  --overlay-border: #e5e0d5;
+  --overlay-blur: 10px;
+  --overlay-transition: 200ms ease-out;
+  
+  /* Hover System */
+  --hover-bg: #eeece6;
+  --hover-elevation: 0 2px 8px 0 rgb(42 37 32 / 0.08);
+  --hover-border: #d8d3c8;
+  --hover-dim-opacity: 0.6;
+  --hover-transition: all 150ms ease-out;
+}
+
+/* ========================================
+   THEME 5: ABBA BRAND (Soft Professional Green)
+   Brand Colors:
+   - Dark Green: #03382f
+   - Yellow: #f2da2f  
+   - Light Green: #b8ebac
+   - Medium Green: #275236
+   ======================================== */
+[data-theme="abba-brand"] {
+  color-scheme: light;
+  
+  /* Core Background Layers - Soft neutral with hint of green */
+  --bg-primary: #f5f9f7;
+  --bg-secondary: #edf4f1;
+  
+  /* Surface Layers - Clean white surfaces */
+  --surface-primary: #ffffff;
+  --surface-secondary: #fafcfb;
+  --surface-tertiary: #f0f5f3;
+  --surface-hover: #e8f0ed;
+  --surface-active: #dde8e4;
+  
+  /* Border & Divider - Subtle green tints */
+  --border-primary: #d8e5e0;
+  --border-secondary: #e8f0ed;
+  --border-hover: #c5d9d0;
+  
+  /* Text Colors - Dark green as primary */
+  --text-primary: #03382f;
+  --text-secondary: #275236;
+  --text-tertiary: #5a8070;
+  --text-disabled: #a0b8b0;
+  
+  /* Accent Colors - Medium green as primary accent */
+  --accent-primary: #275236;
+  --accent-primary-hover: #1e4029;
+  --accent-primary-bg: rgba(39, 82, 54, 0.08);
+  --accent-primary-subtle: rgba(39, 82, 54, 0.06);
+  --accent-secondary: #3d6e50;
+  
+  /* Status Colors - Soft natural palette */
+  --status-progress: #4a9d7a;
+  --status-progress-bg: rgba(74, 157, 122, 0.1);
+  --status-progress-text: #2d8560;
+  
+  --status-start: #b8ebac;
+  --status-start-bg: rgba(184, 235, 172, 0.2);
+  --status-start-text: #5a9d50;
+  
+  --status-burning: #f2da2f;
+  --status-burning-bg: rgba(242, 218, 47, 0.15);
+  --status-burning-text: #c7b01e;
+  
+  --status-late: #e87c5a;
+  --status-late-bg: rgba(232, 124, 90, 0.1);
+  --status-late-text: #d45e3a;
+  
+  --status-end: #6b9d85;
+  --status-end-bg: rgba(107, 157, 133, 0.12);
+  --status-end-text: #4a7a60;
+  
+  /* Priority Colors - Aligned with brand */
+  --priority-high: #d45e3a;
+  --priority-high-bg: rgba(212, 94, 58, 0.1);
+  --priority-high-text: #b84d2e;
+  
+  --priority-medium: #c7b01e;
+  --priority-medium-bg: rgba(242, 218, 47, 0.12);
+  --priority-medium-text: #a89418;
+  
+  --priority-low: #7a9d8a;
+  --priority-low-bg: rgba(122, 157, 138, 0.1);
+  --priority-low-text: #5a7d6a;
+  
+  /* Interactive States */
+  --input-bg: #ffffff;
+  --input-border: #d8e5e0;
+  --input-focus: #275236;
+  
+  /* Shadow - Soft natural shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(3, 56, 47, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(3, 56, 47, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(3, 56, 47, 0.08);
+  
+  /* Overlay System */
+  --overlay-backdrop: rgba(0, 0, 0, 0.60);
+  --overlay-content-bg: #ffffff;
+  --overlay-border: #e5e5e3;
+  --overlay-blur: 12px;
+  
+  /* Hover System */
+  --hover-bg: #f0f0ef;
+  --hover-elevation: 0 2px 8px 0 rgba(3, 56, 47, 0.06);
+  --hover-border: #c5d9d0;
+  --hover-dim-opacity: 0.6;
+  --hover-transition: all 150ms ease-out;
+}
+
+/* ========================================
+   GLOBAL THEME APPLICATION
+   ======================================== */
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Status Utility Classes - Universal Mapping */
+.status-progress {
+  background-color: var(--status-progress-bg);
+  color: var(--status-progress-text);
+}
+
+.status-start {
+  background-color: var(--status-start-bg);
+  color: var(--status-start-text);
+}
+
+.status-burning {
+  background-color: var(--status-burning-bg);
+  color: var(--status-burning-text);
+}
+
+.status-late {
+  background-color: var(--status-late-bg);
+  color: var(--status-late-text);
+}
+
+.status-end {
+  background-color: var(--status-end-bg);
+  color: var(--status-end-text);
+}
+
+/* Priority Utility Classes - Universal Mapping */
+.priority-high {
+  background-color: var(--priority-high-bg);
+  color: var(--priority-high-text);
+}
+
+.priority-medium {
+  background-color: var(--priority-medium-bg);
+  color: var(--priority-medium-text);
+}
+
+.priority-low {
+  background-color: var(--priority-low-bg);
+  color: var(--priority-low-text);
+}
+
+/* Surface Utility Classes */
+.surface-primary {
+  background-color: var(--surface-primary);
+}
+
+.surface-secondary {
+  background-color: var(--surface-secondary);
+}
+
+.surface-hover:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Text Utility Classes */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+/* Border Utility Classes */
+.border-primary {
+  border-color: var(--border-primary);
+}
+
+.border-secondary {
+  border-color: var(--border-secondary);
+}
+
+/* Calendar day hover and selection styles */
+[data-slot="calendar"] .rdp-day:hover {
+  background-color: var(--surface-hover);
+}
+
+[data-slot="calendar"] .rdp-day_selected {
+  background-color: var(--accent-primary) !important;
+}
+
+[data-slot="calendar"] .rdp-day_today {
+  background-color: var(--accent-primary-bg);
+  color: var(--accent-primary);
+}
+
+[data-slot="calendar"] .rdp-button:hover {
+  background-color: var(--surface-hover);
+}
+
+[data-slot="calendar"] .rdp-head_cell {
+  color: var(--text-tertiary);
+}
+
+/* ========================================
+   OVERLAY SYSTEM - Background Disable
+   ======================================== */
+
+/* When overlay is active, disable all background interactions */
+body.overlay-active {
+  overflow: hidden;
+}
+
+/* Disable pointer events and animations on main content when overlay is active */
+body.overlay-active > #root > * {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Disable hover effects in background */
+body.overlay-active *:not([data-overlay-content] *):hover {
+  background-color: inherit !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Stop all animations in background */
+body.overlay-active *:not([data-overlay-content] *) {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* ========================================
+   STANDARDIZED HOVER SYSTEM
+   Modal-like focused interaction pattern
+   ======================================== */
+
+/* Base hover class for interactive elements */
+.hover-focus {
+  transition: var(--hover-transition);
+  cursor: pointer;
+}
+
+/* Hover state - element becomes prominent */
+.hover-focus:hover {
+  background-color: var(--hover-bg);
+  box-shadow: var(--hover-elevation);
+  border-color: var(--hover-border);
+}
+
+/* Table row hover */
+.hover-row {
+  transition: var(--hover-transition);
+  cursor: pointer;
+}
+
+.hover-row:hover {
+  background-color: var(--hover-bg) !important;
+  box-shadow: var(--hover-elevation);
+}
+
+/* Card hover */
+.hover-card {
+  transition: var(--hover-transition);
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  background-color: var(--hover-bg);
+  box-shadow: var(--hover-elevation);
+  transform: translateY(-1px);
+}
+
+/* Button/Action hover */
+.hover-action {
+  transition: var(--hover-transition);
+}
+
+.hover-action:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--hover-border);
+}
+
+/* Subtle hover (for cells, small elements) */
+.hover-subtle {
+  transition: var(--hover-transition);
+}
+
+.hover-subtle:hover {
+  background-color: var(--surface-hover);
+}

@@ -1,0 +1,135 @@
+/* ========================================
+   DARK THEME TABLE REFINEMENTS
+   Minimal, calm, enterprise-focused tables
+   ONLY for Dark Calm & Graphite Blue themes
+   ======================================== */
+
+/* Apply only to dark themes */
+[data-theme="dark-calm"],
+[data-theme="graphite-blue"],
+:root:not([data-theme]) {
+  /* Dark theme table-specific variables */
+  --table-cell-default: transparent;
+  --table-cell-date-opacity: 0.5;
+  --table-progress-height: 2px;
+  --table-border-subtle: rgba(255, 255, 255, 0.06);
+  
+  /* Expanded/Subtask row backgrounds */
+  --table-row-expanded: #151A22;
+  --subtask-row-bg: #161C25;
+  --subtask-row-hover: #1C2230;
+  --subtask-divider: #222837;
+}
+
+/* Remove all colored column backgrounds in dark themes */
+[data-theme="dark-calm"] td,
+[data-theme="graphite-blue"] td,
+:root:not([data-theme]) td {
+  background-color: var(--table-cell-default) !important;
+}
+
+/* Ensure row backgrounds still work */
+[data-theme="dark-calm"] tr:hover td,
+[data-theme="graphite-blue"] tr:hover td,
+:root:not([data-theme]) tr:hover td {
+  /* Hover background is controlled by inline styles - this ensures td doesn't override */
+  background-color: inherit !important;
+}
+
+/* Active task rows - allow background */
+[data-theme="dark-calm"] tr[data-active="true"] td,
+[data-theme="graphite-blue"] tr[data-active="true"] td,
+:root:not([data-theme]) tr[data-active="true"] td {
+  background-color: inherit !important;
+}
+
+/* Selected rows - allow background */
+[data-theme="dark-calm"] tr[data-selected="true"] td,
+[data-theme="graphite-blue"] tr[data-selected="true"] td,
+:root:not([data-theme]) tr[data-selected="true"] td {
+  background-color: inherit !important;
+}
+
+/* Date columns - text only, reduced opacity */
+[data-theme="dark-calm"] td[data-column-type="date"],
+[data-theme="graphite-blue"] td[data-column-type="date"],
+:root:not([data-theme]) td[data-column-type="date"] {
+  opacity: var(--table-cell-date-opacity);
+}
+
+/* Project size/type - neutral text */
+[data-theme="dark-calm"] td[data-column-type="meta"],
+[data-theme="graphite-blue"] td[data-column-type="meta"],
+:root:not([data-theme]) td[data-column-type="meta"] {
+  opacity: 0.8;
+}
+
+/* Refined progress bars for dark theme */
+[data-theme="dark-calm"] .table-progress-bar,
+[data-theme="graphite-blue"] .table-progress-bar,
+:root:not([data-theme]) .table-progress-bar {
+  height: var(--table-progress-height);
+  border-radius: 1px;
+}
+
+/* Expanded / Subtask rows */
+[data-theme="dark-calm"] .table-row--expanded,
+[data-theme="dark-calm"] .subtask-row,
+[data-theme="dark-calm"] .nested-row,
+[data-theme="graphite-blue"] .table-row--expanded,
+[data-theme="graphite-blue"] .subtask-row,
+[data-theme="graphite-blue"] .nested-row,
+:root:not([data-theme]) .table-row--expanded,
+:root:not([data-theme]) .subtask-row,
+:root:not([data-theme]) .nested-row {
+  background-color: var(--table-row-expanded) !important;
+}
+
+/* Expanded container */
+[data-theme="dark-calm"] .table-expanded-content,
+[data-theme="graphite-blue"] .table-expanded-content,
+:root:not([data-theme]) .table-expanded-content {
+  background-color: var(--table-row-expanded) !important;
+}
+
+/* Subtask individual rows */
+[data-theme="dark-calm"] .subtask-row-item,
+[data-theme="graphite-blue"] .subtask-row-item,
+:root:not([data-theme]) .subtask-row-item {
+  background-color: var(--subtask-row-bg);
+}
+
+/* Hover */
+[data-theme="dark-calm"] .subtask-row-item:hover,
+[data-theme="graphite-blue"] .subtask-row-item:hover,
+:root:not([data-theme]) .subtask-row-item:hover {
+  background-color: var(--subtask-row-hover);
+}
+
+/* Divider lines */
+[data-theme="dark-calm"] .table-row-divider,
+[data-theme="dark-calm"] .subtask-divider,
+[data-theme="graphite-blue"] .table-row-divider,
+[data-theme="graphite-blue"] .subtask-divider,
+:root:not([data-theme]) .table-row-divider,
+:root:not([data-theme]) .subtask-divider {
+  border-color: var(--subtask-divider);
+}
+
+/* Light themes - keep existing behavior */
+[data-theme="light-soft"] td[style*="background-color"],
+[data-theme="warm-sand"] td[style*="background-color"] {
+  /* Light theme colored backgrounds remain as-is */
+  background-color: inherit !important;
+}
+
+/* Light themes - Subtask row variables */
+[data-theme="light-soft"],
+[data-theme="warm-sand"],
+[data-theme="abba-brand"] {
+  /* Light theme subtask backgrounds */
+  --table-row-expanded: rgba(0, 0, 0, 0.02);
+  --subtask-row-bg: #F9FAFB;
+  --subtask-row-hover: #F3F4F6;
+  --subtask-divider: rgba(0, 0, 0, 0.08);
+}

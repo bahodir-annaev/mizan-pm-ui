@@ -1,0 +1,243 @@
+/* ========================================
+   PREMIUM DARK CALM REFINEMENTS
+   Enterprise-grade visual polish
+   ======================================== */
+
+/* Premium table styling for Dark Calm theme */
+[data-theme="dark-calm"] {
+  /* Table container with subtle shadow */
+  & table {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* Main task rows - subtle elevation */
+  & .works-table tr {
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Hover state with premium feel */
+  & .works-table tr:hover {
+    background-color: var(--surface-hover);
+  }
+
+  /* Active task indicator - refined */
+  & .works-table tr[data-active="true"] {
+    border-left-width: 3px;
+    border-left-color: var(--accent-primary);
+    border-left-style: solid;
+  }
+
+  /* Subtask rows - nested visual hierarchy */
+  & .subtask-row-item {
+    background-color: var(--subtask-row-bg);
+    border-bottom: 1px solid var(--subtask-divider);
+  }
+
+  /* Premium avatar styling */
+  & .avatar {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Smooth animations for name reveals */
+  & .name-reveal {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Premium scrollbar styling */
+  & .works-table-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  & .works-table-container::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 6px;
+  }
+
+  & .works-table-container::-webkit-scrollbar-thumb {
+    background: var(--surface-tertiary);
+    border-radius: 6px;
+    border: 2px solid var(--bg-primary);
+  }
+
+  & .works-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--surface-hover);
+  }
+
+  /* Refined borders */
+  & .border-divider {
+    border-color: var(--border-primary);
+  }
+
+  /* Premium focus states */
+  & button:focus-visible,
+  & input:focus-visible,
+  & select:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Subtle glow on interactive elements */
+  & .interactive-glow:hover {
+    box-shadow: 0 0 0 1px var(--accent-primary-bg);
+  }
+
+  /* Premium spacing */
+  & .works-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  & .works-table td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  /* Clean header styling */
+  & .works-table thead {
+    background-color: var(--surface-primary);
+    border-bottom: 1px solid var(--border-primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* Row separators - subtle */
+  & .works-table tbody tr {
+    border-bottom: 1px solid var(--border-secondary);
+  }
+
+  /* Last row no border */
+  & .works-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  /* Premium modal backgrounds */
+  & [role="dialog"] {
+    background-color: var(--surface-primary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4),
+                0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+  }
+
+  /* Refined dropdown menus */
+  & [data-slot="select-content"] {
+    background-color: var(--surface-primary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
+                0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+  }
+
+  /* Premium button states */
+  & button:not(:disabled):hover {
+    opacity: 0.9;
+  }
+
+  & button:not(:disabled):active {
+    transform: scale(0.98);
+  }
+
+  /* Smooth color transitions */
+  & * {
+    transition-property: background-color, border-color, color, opacity;
+    transition-duration: 0.2s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Override for animations */
+  & *[class*="animate"],
+  & *[class*="transition"] {
+    /* Keep existing transition */
+  }
+}
+
+/* Dark mode text selection */
+[data-theme="dark-calm"] ::selection {
+  background-color: var(--accent-primary-bg);
+  color: var(--accent-primary);
+}
+
+/* Premium loading states */
+[data-theme="dark-calm"] .loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-secondary) 0%,
+    var(--surface-tertiary) 50%,
+    var(--surface-secondary) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Premium empty states */
+[data-theme="dark-calm"] .empty-state {
+  color: var(--text-tertiary);
+  padding: 48px 24px;
+  text-align: center;
+  border: 2px dashed var(--border-secondary);
+  border-radius: 12px;
+  background-color: var(--surface-secondary);
+}
+
+/* Refined badge styling */
+[data-theme="dark-calm"] .badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Premium status indicators */
+[data-theme="dark-calm"] .status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-primary);
+}
+
+/* Smooth fade transitions */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 0.2s ease-in;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+/* Slide transitions */
+.slide-enter {
+  transform: translateY(-8px);
+  opacity: 0;
+}
+
+.slide-enter-active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
