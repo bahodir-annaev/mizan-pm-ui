@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { WorkType } from '@/types/api';
 
 interface EditableWorkCellProps {
   field: 'status' | 'priority' | 'workType' | 'acceptance' | 'dateStart' | 'dateEnd' | 'title' | 'assignee';
@@ -58,16 +59,16 @@ const priorityOptions = [
 ];
 
 const workTypeOptions = [
-  { value: 'Architecture', label: 'Architecture', icon: Home },
-  { value: 'Interior Design', label: 'Interior Design', icon: PaintBucket },
-  { value: 'Exterior Design', label: 'Exterior Design', icon: Building },
-  { value: 'Landscape', label: 'Landscape', icon: Trees },
-  { value: 'Working Drawings', label: 'Working Drawings', icon: FileText },
-  { value: '3D Visualization', label: '3D Visualization', icon: Box },
-  { value: 'Author Supervision', label: 'Author Supervision', icon: Eye },
-  { value: 'Documentation', label: 'Documentation', icon: File },
-  { value: 'Engineering', label: 'Engineering', icon: Wrench },
-  { value: 'Client Coordination', label: 'Client Coordination', icon: Users },
+  { value: 'architecture',        label: 'Architecture', icon: Home },
+  { value: 'interior_design',     label: 'Interior Design', icon: PaintBucket },
+  { value: 'exterior_design',     label: 'Exterior Design', icon: Building },
+  { value: 'landscape',           label: 'Landscape', icon: Trees },
+  { value: 'working_drawings',    label: 'Working Drawings', icon: FileText },
+  { value: '3d_visualization',    label: '3D Visualization', icon: Box },
+  { value: 'author_supervision',  label: 'Author Supervision', icon: Eye },
+  { value: 'documentation',       label: 'Documentation', icon: File },
+  { value: 'engineering',         label: 'Engineering', icon: Wrench },
+  { value: 'client_coordination', label: 'Client Coordination', icon: Users },
 ];
 
 const acceptanceOptions = [

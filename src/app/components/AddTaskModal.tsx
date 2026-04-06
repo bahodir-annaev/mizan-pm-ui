@@ -5,25 +5,21 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  ChevronDown, 
+import { useCreateTask, useUpdateTask } from '@/hooks/api/useTasks';
+import { useProjects } from '@/hooks/api/useProjects';
+import { useUsers } from '@/hooks/api/useUsers';
+import type { CreateTaskDto, UpdateTaskDto, TaskPriority, TaskStatus, WorkType } from '@/types/api';
+import { ModalHeader } from './ModalHeader';
+import {
+  ChevronDown,
   Calendar,
   User,
   Users,
   Tag,
   FileText,
-  BarChart3,
   CheckCircle2,
-  MessageSquare,
   ChevronRight,
-  Play,
-  Activity,
-  Clock,
   Check,
-  AlertCircle,
-  XCircle,
-  CircleDot
 } from 'lucide-react';
 
 interface AddTaskModalProps {
@@ -32,74 +28,89 @@ interface AddTaskModalProps {
   initialData?: any; // Task data for edit mode
   mode?: 'create' | 'edit'; // Modal mode
   defaultProjectId?: string; // Default project to pre-select
+  parentTaskId?: string; // Pre-populate parent task (subtask creation)
+  parentTaskTitle?: string; // Display name for the parent task field
 }
 
-// Priority configuration - uses theme variables
+// Status options derived from TaskStatus enum
+const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string }> = [
+  { value: 'PLANNING',        label: 'Planning' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'IN_REVIEW',   label: 'In Review' },
+  { value: 'DONE',        label: 'Done' },
+  { value: 'CANCELLED',   label: 'Cancelled' },
+];
+
+// Priority options derived from TaskPriority enum
+const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string }> = [
+  { value: 'LOW',    label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH',   label: 'High' },
+  { value: 'URGENT', label: 'Urgent' },
+];
+
+// Work type options matching backend enum values
+const WORK_TYPE_OPTIONS: Array<{ value: WorkType; label: string }> = [
+  { value: 'architecture',       label: 'Architecture' },
+  { value: 'interior_design',    label: 'Interior Design' },
+  { value: 'exterior_design',    label: 'Exterior Design' },
+  { value: 'landscape',          label: 'Landscape' },
+  { value: 'working_drawings',   label: 'Working Drawings' },
+  { value: '3d_visualization',   label: '3D Visualization' },
+  { value: 'author_supervision', label: 'Author Supervision' },
+  { value: 'documentation',      label: 'Documentation' },
+  { value: 'engineering',        label: 'Engineering' },
+  { value: 'client_coordination',label: 'Client Coordination' },
+];
+
+// Unit options — static measurement units
+const UNIT_OPTIONS = ['m²', 'm³', 'kg', 'pcs', 'hours'];
+
+// Resolve status: accepts enum values ('IN_PROGRESS'), display names ('In Progress'),
+// or legacy app-specific strings ('Burning', 'Start', 'End', 'Late')
+function resolveStatus(status: string): string {
+  if (!status) return '';
+  const byValue = STATUS_OPTIONS.find(o => o.value === status);
+  if (byValue) return byValue.value;
+  const byLabel = STATUS_OPTIONS.find(o => o.label.toLowerCase() === status.toLowerCase());
+  if (byLabel) return byLabel.value;
+  // Legacy display strings used in mock data
+  const LEGACY: Record<string, TaskStatus> = {
+    'Start':   'TODO',
+    'End':     'DONE',
+    'Burning': 'IN_PROGRESS',
+    'Late':    'IN_PROGRESS',
+  };
+  return LEGACY[status] ?? '';
+}
+
+// Resolve workType: accepts both enum values ('architecture') and display names ('Architecture')
+function resolveWorkType(workType: string): string {
+  if (!workType) return '';
+  const byValue = WORK_TYPE_OPTIONS.find(o => o.value === workType);
+  if (byValue) return byValue.value;
+  const byLabel = WORK_TYPE_OPTIONS.find(o => o.label.toLowerCase() === workType.toLowerCase());
+  return byLabel ? byLabel.value : '';
+}
+
+// Priority color config keyed by API enum value
 const getPriorityConfig = (priority: string) => {
   switch (priority) {
-    case 'Low':
-      return { color: 'var(--priority-low)', bgColor: 'var(--priority-low-bg)' };
-    case 'Medium':
-      return { color: 'var(--priority-medium)', bgColor: 'var(--priority-medium-bg)' };
-    case 'High':
-      return { color: 'var(--priority-high)', bgColor: 'var(--priority-high-bg)' };
-    default:
-      return { color: 'var(--text-tertiary)', bgColor: 'var(--surface-tertiary)' };
+    case 'LOW':    return { color: 'var(--priority-low)',    bgColor: 'var(--priority-low-bg)' };
+    case 'MEDIUM': return { color: 'var(--priority-medium)', bgColor: 'var(--priority-medium-bg)' };
+    case 'HIGH':   return { color: 'var(--priority-high)',   bgColor: 'var(--priority-high-bg)' };
+    case 'URGENT': return { color: 'var(--status-late)',     bgColor: 'var(--status-late-bg)' };
+    default:       return { color: 'var(--text-tertiary)',   bgColor: 'var(--surface-tertiary)' };
   }
 };
 
-// Status configuration - uses theme variables
-const getStatusConfig = (status: string): { icon: React.ReactNode; color: string; bgColor: string } => {
-  const baseIconStyle = { width: '14px', height: '14px' };
-  
-  switch (status) {
-    case 'Not Started':
-      return {
-        icon: <CircleDot style={baseIconStyle} />,
-        color: 'var(--text-tertiary)',
-        bgColor: 'var(--surface-tertiary)'
-      };
-    case 'Started':
-      return {
-        icon: <Play style={baseIconStyle} />,
-        color: 'var(--status-start)',
-        bgColor: 'var(--status-start-bg)'
-      };
-    case 'In Progress':
-      return {
-        icon: <Activity style={baseIconStyle} />,
-        color: 'var(--status-progress)',
-        bgColor: 'var(--status-progress-bg)'
-      };
-    case 'Pending review':
-      return {
-        icon: <Clock style={baseIconStyle} />,
-        color: 'var(--status-burning)',
-        bgColor: 'var(--status-burning-bg)'
-      };
-    case 'Late':
-      return {
-        icon: <AlertCircle style={baseIconStyle} />,
-        color: 'var(--status-late)',
-        bgColor: 'var(--status-late-bg)'
-      };
-    case 'Completed':
-      return {
-        icon: <Check style={baseIconStyle} />,
-        color: 'var(--status-end)',
-        bgColor: 'var(--status-end-bg)'
-      };
-    default:
-      return {
-        icon: <CircleDot style={baseIconStyle} />,
-        color: 'var(--text-tertiary)',
-        bgColor: 'var(--surface-tertiary)'
-      };
-  }
-};
-
-export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', defaultProjectId }: AddTaskModalProps) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
+export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', defaultProjectId, parentTaskId, parentTaskTitle }: AddTaskModalProps) {
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const { data: projects = [] } = useProjects();
+  const { data: users = [] } = useUsers();
+  const [showAdvanced, setShowAdvanced] = useState(mode === 'edit');
+  const [showParticipants, setShowParticipants] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
@@ -107,14 +118,14 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
     title: '',
     description: '',
     project: defaultProjectId || '',
-    assignee: 'Sarah Johnson',
+    assignee: '',
     participants: [] as string[],
-    status: 'Not Started',
-    priority: 'Medium',
+    status: '',
+    priority: 'MEDIUM' as TaskPriority,
     startDate: '',
     dueDate: '',
     labels: [] as string[],
-    typeOfWork: '',
+    typeOfWork: '' as WorkType | '',
     volume: '',
     unit: '',
     acceptanceStatus: 'Pending review',
@@ -128,19 +139,19 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
       setFormData({
         title: initialData.title || '',
         description: initialData.description || '',
-        project: initialData.project || '',
-        assignee: initialData.assignee?.name || 'Sarah Johnson',
-        participants: initialData.participants?.map((p: any) => p.name) || [],
-        status: initialData.status || 'Not Started',
-        priority: initialData.priority || 'Medium',
-        startDate: initialData.dateStart || '',
-        dueDate: initialData.dateEnd || '',
+        project: initialData.projectId || initialData.project || '',
+        assignee: initialData.assignee?.id || '',
+        participants: (initialData.participants?.map((p: any) => p.id).filter(Boolean)) || [],
+        status: resolveStatus(initialData.statusKey || initialData.status || ''),
+        priority: (initialData.priorityKey || initialData.priority || 'MEDIUM') as TaskPriority,
+        startDate: initialData.dateStart || initialData.startDate || '',
+        dueDate: initialData.dateEnd || initialData.dueDate || '',
         labels: initialData.labels || [],
-        typeOfWork: initialData.workType || '',
-        volume: initialData.volume || '',
+        typeOfWork: resolveWorkType(initialData.workType || '') as WorkType | '',
+        volume: initialData.volume != null ? String(initialData.volume) : '',
         unit: initialData.unit || '',
-        acceptanceStatus: initialData.acceptance || 'Pending review',
-        progress: initialData.progress || 0,
+        acceptanceStatus: initialData.acceptance || initialData.acceptanceStatus || 'Pending review',
+        progress: initialData.progress ?? 0,
         comments: initialData.comments || ''
       });
     } else if (mode === 'create') {
@@ -149,14 +160,14 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
         title: '',
         description: '',
         project: defaultProjectId || '',
-        assignee: 'Sarah Johnson',
+        assignee: '',
         participants: [],
-        status: 'Not Started',
-        priority: 'Medium',
+        status: '',
+        priority: 'MEDIUM' as TaskPriority,
         startDate: '',
         dueDate: '',
         labels: [],
-        typeOfWork: '',
+        typeOfWork: '' as WorkType | '',
         volume: '',
         unit: '',
         acceptanceStatus: 'Pending review',
@@ -204,14 +215,48 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
 
   if (!isOpen) return null;
 
+  const buildCreateDto = (): CreateTaskDto => ({
+    title: formData.title,
+    description: formData.description || undefined,
+    projectId: formData.project || 'default',
+    assigneeId: formData.assignee || undefined,
+    participantIds: formData.participants.length > 0 ? formData.participants : undefined,
+    priority: formData.priority,
+    startDate: formData.startDate || undefined,
+    dueDate: formData.dueDate || undefined,
+    workType: formData.typeOfWork || undefined,
+    parentId: parentTaskId || undefined,
+  });
+
+  const buildUpdateDto = (): UpdateTaskDto => ({
+    title: formData.title,
+    description: formData.description || undefined,
+    assigneeId: formData.assignee || undefined,
+    participantIds: formData.participants.length > 0 ? formData.participants : undefined,
+    priority: formData.priority,
+    status: formData.status as TaskStatus || undefined,
+    startDate: formData.startDate || undefined,
+    dueDate: formData.dueDate || undefined,
+    workType: formData.typeOfWork || undefined,
+    progress: formData.progress,
+  });
+
   const handleSave = () => {
-    console.log('Save task:', formData);
-    onClose();
+    if (!formData.title.trim()) return;
+    if (mode === 'edit' && initialData?.id) {
+      updateTask.mutate({ id: initialData.id, dto: buildUpdateDto() }, { onSuccess: () => onClose() });
+    } else {
+      createTask.mutate(buildCreateDto(), { onSuccess: () => onClose() });
+    }
   };
 
   const handleSaveAndView = () => {
-    console.log('Save and view task:', formData);
-    onClose();
+    if (!formData.title.trim()) return;
+    if (mode === 'edit' && initialData?.id) {
+      updateTask.mutate({ id: initialData.id, dto: buildUpdateDto() }, { onSuccess: () => onClose() });
+    } else {
+      createTask.mutate(buildCreateDto(), { onSuccess: () => onClose() });
+    }
   };
 
   return (
@@ -242,25 +287,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 1px rgba(0, 0, 0, 0.2)'
           }}
         >
-          {/* Header */}
-          <div 
-            className="flex items-center justify-between px-6 py-4 border-b"
-            style={{ borderColor: 'var(--border-primary)' }}
-          >
-            <h2 
-              className="text-lg font-semibold"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              {mode === 'edit' ? 'Edit Task' : 'New Task'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:opacity-70 transition-opacity"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <X style={{ width: '20px', height: '20px' }} />
-            </button>
-          </div>
+          <ModalHeader title={mode === 'edit' ? 'Edit Task' : 'New Task'} onClose={onClose} />
 
           {/* Content */}
           <div className="overflow-y-auto max-h-[calc(90vh-140px)] px-6 py-6" style={{
@@ -323,89 +350,146 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
                   Assignment
                 </h3>
                 
+                {/* Read-only parent task banner — shown only in subtask mode */}
+                {parentTaskId && (
+                  <div className="grid grid-cols-2 gap-4 mb-0">
+                    <ReadonlyField
+                      label="Project"
+                      icon={<FileText style={{ width: '14px', height: '14px' }} />}
+                      value={projects.find(p => p.id === formData.project)?.name ?? formData.project ?? '—'}
+                    />
+                    <ReadonlyField
+                      label="Parent task"
+                      icon={<ChevronRight style={{ width: '14px', height: '14px' }} />}
+                      value={parentTaskTitle ?? parentTaskId}
+                    />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Project */}
+                  {/* Project — hidden in subtask mode (pre-populated & read-only above) */}
+                  {!parentTaskId && (
                   <SelectField
                     label="Project"
                     value={formData.project}
                     onChange={(value) => setFormData({ ...formData, project: value })}
-                    options={[
-                      'Mehnat bozorini',
-                      'Xolis Ismailov',
-                      'John Company',
-                      'Tech Solutions'
-                    ]}
+                    options={projects.map(p => ({ value: p.id, label: p.name }))}
                     placeholder="Select project"
                     icon={<FileText style={{ width: '14px', height: '14px' }} />}
                   />
+                  )}
 
                   {/* Assignee */}
                   <SelectField
                     label="Assignee"
                     value={formData.assignee}
                     onChange={(value) => setFormData({ ...formData, assignee: value })}
-                    options={[
-                      'Sarah Johnson',
-                      'Alex Kim',
-                      'Mike Chen',
-                      'Emma Wilson'
-                    ]}
+                    options={users.map(u => ({ value: u.id, label: u.name }))}
+                    placeholder="Select assignee"
                     icon={<User style={{ width: '14px', height: '14px' }} />}
                   />
                 </div>
 
                 {/* Participants */}
-                <div>
-                  <label 
+                <div className="relative">
+                  <label
                     className="block text-xs font-medium mb-2"
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     Participants
                   </label>
                   <button
+                    onClick={() => setShowParticipants(!showParticipants)}
                     className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all"
                     style={{
                       backgroundColor: 'var(--surface-secondary)',
                       border: '1px solid var(--border-primary)',
-                      color: 'var(--text-tertiary)'
+                      color: formData.participants.length > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)'
                     }}
                   >
                     <div className="flex items-center gap-2">
                       <Users style={{ width: '14px', height: '14px' }} />
-                      <span className="text-xs">Add participants...</span>
+                      <span className="text-xs">
+                        {formData.participants.length > 0
+                          ? `${formData.participants.length} participant${formData.participants.length > 1 ? 's' : ''} selected`
+                          : 'Add participants...'}
+                      </span>
                     </div>
-                    <ChevronDown style={{ width: '14px', height: '14px' }} />
+                    <ChevronDown style={{ width: '14px', height: '14px', transform: showParticipants ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
                   </button>
+                  {showParticipants && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowParticipants(false)} />
+                      <div
+                        className="absolute top-full left-0 mt-1 w-full rounded-lg overflow-hidden z-20 max-h-48 overflow-y-auto"
+                        style={{
+                          backgroundColor: 'var(--surface-primary)',
+                          border: '1px solid var(--border-primary)',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+                        }}
+                      >
+                        {users.map(user => {
+                          const isSelected = formData.participants.includes(user.id);
+                          return (
+                            <button
+                              key={user.id}
+                              onClick={() => {
+                                const next = isSelected
+                                  ? formData.participants.filter(id => id !== user.id)
+                                  : [...formData.participants, user.id];
+                                setFormData({ ...formData, participants: next });
+                              }}
+                              className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+                              style={{
+                                color: 'var(--text-primary)',
+                                backgroundColor: isSelected ? 'var(--surface-hover)' : 'transparent'
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--surface-hover)'; }}
+                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              <span className="text-xs">{user.name}</span>
+                              {isSelected && <Check style={{ width: '12px', height: '12px', color: 'var(--accent-primary)' }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Status & Planning */}
               <div className="space-y-4 pt-4">
-                <h3 
+                <h3
                   className="text-sm font-semibold"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Status & Planning
+                  Planning
                 </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Status */}
-                  <StatusSelect
-                    label="Status"
-                    value={formData.status}
-                    onChange={(value) => setFormData({ ...formData, status: value })}
-                  />
 
-                  {/* Priority */}
+                {/* Status & Priority */}
+                <div className={`grid gap-4 ${mode === 'edit' ? 'grid-cols-2' : 'w-1/2 pr-2'}`}>
+                  {mode === 'edit' && (
+                    <SelectField
+                      label="Status"
+                      value={formData.status}
+                      onChange={(value) => setFormData({ ...formData, status: value })}
+                      options={STATUS_OPTIONS}
+                      placeholder="Select status"
+                    />
+                  )}
                   <PrioritySelect
                     label="Priority"
                     value={formData.priority}
-                    onChange={(value) => setFormData({ ...formData, priority: value })}
+                    onChange={(value) => setFormData({ ...formData, priority: value as TaskPriority })}
                   />
+                </div>
 
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-4">
                   {/* Start Date */}
                   <div>
-                    <label 
+                    <label
                       className="block text-xs font-medium mb-2"
                       style={{ color: 'var(--text-secondary)' }}
                     >
@@ -423,24 +507,13 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
                           color: 'var(--text-primary)'
                         }}
                       />
-                      <Calendar 
-                        style={{ 
-                          width: '14px', 
-                          height: '14px',
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: 'var(--text-tertiary)',
-                          pointerEvents: 'none'
-                        }} 
-                      />
+                      <Calendar style={{ width: '14px', height: '14px', position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
                     </div>
                   </div>
 
                   {/* Due Date */}
                   <div>
-                    <label 
+                    <label
                       className="block text-xs font-medium mb-2"
                       style={{ color: 'var(--text-secondary)' }}
                     >
@@ -458,18 +531,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
                           color: 'var(--text-primary)'
                         }}
                       />
-                      <Calendar 
-                        style={{ 
-                          width: '14px', 
-                          height: '14px',
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: 'var(--text-tertiary)',
-                          pointerEvents: 'none'
-                        }} 
-                      />
+                      <Calendar style={{ width: '14px', height: '14px', position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
                     </div>
                   </div>
                 </div>
@@ -522,14 +584,8 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
                     <SelectField
                       label="Type of work"
                       value={formData.typeOfWork}
-                      onChange={(value) => setFormData({ ...formData, typeOfWork: value })}
-                      options={[
-                        'Architecture',
-                        'Construction',
-                        'Design',
-                        'Engineering',
-                        'Planning'
-                      ]}
+                      onChange={(value) => setFormData({ ...formData, typeOfWork: value as WorkType })}
+                      options={WORK_TYPE_OPTIONS}
                       placeholder="Select type"
                     />
 
@@ -560,7 +616,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
                         label="Unit"
                         value={formData.unit}
                         onChange={(value) => setFormData({ ...formData, unit: value })}
-                        options={['m²', 'm³', 'kg', 'pcs', 'hours']}
+                        options={UNIT_OPTIONS}
                         placeholder="Select unit"
                       />
                     </div>
@@ -677,27 +733,53 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
 }
 
 // Reusable Select Field Component
+interface SelectOption { value: string; label: string; }
 interface SelectFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: string[] | SelectOption[];
   placeholder?: string;
   icon?: React.ReactNode;
 }
 
+function ReadonlyField({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+        {label}
+      </label>
+      <div
+        className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs"
+        style={{
+          backgroundColor: 'var(--surface-tertiary, var(--surface-secondary))',
+          border: '1px solid var(--border-primary)',
+          color: 'var(--text-tertiary)',
+          cursor: 'default',
+          opacity: 0.8,
+        }}
+      >
+        {icon}
+        <span className="truncate">{value}</span>
+      </div>
+    </div>
+  );
+}
+
 function SelectField({ label, value, onChange, options, placeholder, icon }: SelectFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const normalized: SelectOption[] = options.map(o => typeof o === 'string' ? { value: o, label: o } : o);
+  const selectedLabel = normalized.find(o => o.value === value)?.label;
 
   return (
     <div className="relative">
-      <label 
+      <label
         className="block text-xs font-medium mb-2"
         style={{ color: 'var(--text-secondary)' }}
       >
         {label}
       </label>
-      
+
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all"
@@ -709,26 +791,26 @@ function SelectField({ label, value, onChange, options, placeholder, icon }: Sel
       >
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-xs">{value || placeholder || 'Select...'}</span>
+          <span className="text-xs">{selectedLabel || placeholder || 'Select...'}</span>
         </div>
-        <ChevronDown 
-          style={{ 
-            width: '14px', 
+        <ChevronDown
+          style={{
+            width: '14px',
             height: '14px',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s ease'
-          }} 
+          }}
         />
       </button>
 
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Dropdown */}
           <div
             className="absolute top-full left-0 mt-1 w-full rounded-lg overflow-hidden z-20 max-h-48 overflow-y-auto"
@@ -738,28 +820,28 @@ function SelectField({ label, value, onChange, options, placeholder, icon }: Sel
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
             }}
           >
-            {options.map((option) => (
+            {normalized.map((option) => (
               <button
-                key={option}
+                key={option.value}
                 onClick={() => {
-                  onChange(option);
+                  onChange(option.value);
                   setIsOpen(false);
                 }}
                 className="w-full text-left px-4 py-2.5 transition-colors"
                 style={{
                   color: 'var(--text-primary)',
-                  backgroundColor: value === option ? 'var(--surface-hover)' : 'transparent'
+                  backgroundColor: value === option.value ? 'var(--surface-hover)' : 'transparent'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
                 }}
                 onMouseLeave={(e) => {
-                  if (value !== option) {
+                  if (value !== option.value) {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }
                 }}
               >
-                <span className="text-xs">{option}</span>
+                <span className="text-xs">{option.label}</span>
               </button>
             ))}
           </div>
@@ -769,113 +851,6 @@ function SelectField({ label, value, onChange, options, placeholder, icon }: Sel
   );
 }
 
-// Status Select Field Component with Icons and Colors
-interface StatusSelectProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}
-
-function StatusSelect({ label, value, onChange }: StatusSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedConfig = value ? getStatusConfig(value) : null;
-  
-  const statusOptions = ['Not Started', 'Started', 'In Progress', 'Pending review', 'Late', 'Completed'];
-
-  return (
-    <div className="relative">
-      <label 
-        className="block text-xs font-medium mb-2"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        {label}
-      </label>
-      
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all"
-        style={{
-          backgroundColor: selectedConfig ? selectedConfig.bgColor : 'var(--surface-secondary)',
-          border: `1px solid ${selectedConfig ? selectedConfig.color + '33' : 'var(--border-primary)'}`,
-          color: selectedConfig ? selectedConfig.color : 'var(--text-tertiary)'
-        }}
-      >
-        <div className="flex items-center gap-2">
-          {selectedConfig?.icon}
-          <span className="text-xs font-medium">{value || 'Select status...'}</span>
-        </div>
-        <ChevronDown 
-          style={{ 
-            width: '14px', 
-            height: '14px',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s ease',
-            opacity: 0.5
-          }} 
-        />
-      </button>
-
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown */}
-          <div
-            className="absolute top-full left-0 mt-1 w-full rounded-lg overflow-hidden z-20 max-h-64 overflow-y-auto"
-            style={{
-              backgroundColor: 'var(--surface-primary)',
-              border: '1px solid var(--border-primary)',
-              boxShadow: 'var(--shadow-lg)'
-            }}
-          >
-            {statusOptions.map((option) => {
-              const config = getStatusConfig(option);
-              const isSelected = value === option;
-              
-              return (
-                <button
-                  key={option}
-                  onClick={() => {
-                    onChange(option);
-                    setIsOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2.5 transition-all"
-                  style={{
-                    backgroundColor: isSelected ? config.bgColor : 'transparent',
-                    borderLeft: isSelected ? `3px solid ${config.color}` : '3px solid transparent'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = config.bgColor;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-2.5 pl-1">
-                    <span style={{ color: config.color }}>
-                      {config.icon}
-                    </span>
-                    <span className="text-xs font-medium" style={{ color: config.color }}>
-                      {option}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 // Priority Select Field Component with Colors
 interface PrioritySelectProps {
@@ -887,8 +862,7 @@ interface PrioritySelectProps {
 function PrioritySelect({ label, value, onChange }: PrioritySelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedConfig = value ? getPriorityConfig(value) : null;
-  
-  const priorityOptions = ['Low', 'Medium', 'High'];
+  const selectedLabel = PRIORITY_OPTIONS.find(o => o.value === value)?.label ?? value;
 
   return (
     <div className="relative">
@@ -909,7 +883,7 @@ function PrioritySelect({ label, value, onChange }: PrioritySelectProps) {
         }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">{value || 'Select priority...'}</span>
+          <span className="text-xs font-medium">{selectedLabel || 'Select priority...'}</span>
         </div>
         <ChevronDown 
           style={{ 
@@ -939,15 +913,15 @@ function PrioritySelect({ label, value, onChange }: PrioritySelectProps) {
               boxShadow: 'var(--shadow-lg)'
             }}
           >
-            {priorityOptions.map((option) => {
-              const config = getPriorityConfig(option);
-              const isSelected = value === option;
-              
+            {PRIORITY_OPTIONS.map((option) => {
+              const config = getPriorityConfig(option.value);
+              const isSelected = value === option.value;
+
               return (
                 <button
-                  key={option}
+                  key={option.value}
                   onClick={() => {
-                    onChange(option);
+                    onChange(option.value);
                     setIsOpen(false);
                   }}
                   className="w-full text-left px-3 py-2.5 transition-all"
@@ -968,7 +942,7 @@ function PrioritySelect({ label, value, onChange }: PrioritySelectProps) {
                 >
                   <div className="flex items-center gap-2.5 pl-1">
                     <span className="text-xs font-semibold" style={{ color: config.color }}>
-                      {option}
+                      {option.label}
                     </span>
                   </div>
                 </button>

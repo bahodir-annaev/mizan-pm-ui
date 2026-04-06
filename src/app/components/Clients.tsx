@@ -3,47 +3,20 @@ import { Trash2, FolderOpen, CheckCircle, Clock, FileText, Mail, Search, Filter,
 import { useTranslation } from '../contexts/TranslationContext';
 import { ClientDetail } from './ClientDetail';
 import { EditClientModal } from './EditClientModal';
+import { useClients } from '@/hooks/api/useClients';
+import type { Client } from '@/types/domain';
 
 type ClientTab = 'overview' | 'clients' | 'contacts';
-
-interface Client {
-  id: number;
-  name: string;
-  contactPerson: string;
-  phone: string;
-  group: string;
-  labels: string[];
-  projectsCount: number;
-}
 
 export function Clients() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ClientTab>('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
-  const clientsData: Client[] = [
-    { id: 1, name: 'Discover Invest', contactPerson: '', phone: '+998888828532', group: '', labels: [], projectsCount: 114 },
-    { id: 4, name: 'Prime-tower group', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 0 },
-    { id: 5, name: 'Usbekcom', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 0 },
-    { id: 6, name: '5QB', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 1 },
-    { id: 7, name: 'Toshkent shahar hokimiyati', contactPerson: '', phone: '71 210 03 47', group: '', labels: ['client'], projectsCount: 1 },
-    { id: 8, name: 'Xurshid aka', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 0 },
-    { id: 9, name: 'ГП ООО «GLOBAL OPTICAL COMMUNICATION UZBEKISTAN»', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 1 },
-    { id: 10, name: 'Senjar aka', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 1 },
-    { id: 11, name: 'MANAR Development', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 0 },
-    { id: 12, name: 'CHORSU REAL ESTATE Development', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 0 },
-    { id: 13, name: 'Nodir aka MB', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 1 },
-    { id: 14, name: 'jahongir aka Uzneftkam', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 0 },
-    { id: 15, name: 'Autonet rzevniy', contactPerson: '', phone: '', group: '', labels: [], projectsCount: 1 },
-  ];
-
-  const filteredClients = clientsData.filter(client =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.phone.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: filteredClients = [] } = useClients({ search: searchQuery || undefined });
 
   // Helper function to get initials
   const getInitials = (name: string) => {
@@ -79,7 +52,7 @@ export function Clients() {
     {
       icon: Trash2,
       label: 'Total Clients',
-      value: '13',
+      value: String(filteredClients.length),
       color: '#5B9AFF'
     },
     {
@@ -136,11 +109,6 @@ export function Clients() {
         <EditClientModal
           client={editingClient}
           onClose={() => setEditingClient(null)}
-          onSave={(data) => {
-            console.log('Saving client data:', data);
-            // Here you would typically update the client data
-            setEditingClient(null);
-          }}
         />
       )}
 
@@ -454,7 +422,7 @@ export function Clients() {
                     <tr 
                       key={client.id}
                       className="transition-colors"
-                      style={{ 
+                      style={{
                         borderBottom: index !== filteredClients.length - 1 ? '1px solid var(--border-primary)' : 'none'
                       }}
                       onMouseEnter={(e) => {
@@ -547,88 +515,45 @@ export function Clients() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {client.group ? (
-                            <>
-                              <Building2 style={{ width: '14px', height: '14px', color: 'var(--text-tertiary)' }} />
-                              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                {client.group}
-                              </span>
-                            </>
-                          ) : (
-                            <span 
-                              className="text-xs italic"
-                              style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}
-                            >
-                              Not specified
-                            </span>
-                          )}
-                        </div>
+                        <span
+                          className="text-xs italic"
+                          style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}
+                        >
+                          Not specified
+                        </span>
                       </td>
                       <td className="px-6 py-4">
-                        {client.labels.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {client.labels.map((label, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2.5 py-1 rounded-full text-xs"
-                                style={{
-                                  backgroundColor: 'var(--accent-primary)' + '20',
-                                  color: 'var(--accent-primary)',
-                                  fontWeight: 500,
-                                  border: '1px solid ' + 'var(--accent-primary)' + '30'
-                                }}
-                              >
-                                {label}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span 
-                            className="text-xs italic"
-                            style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}
-                          >
-                            No labels
-                          </span>
-                        )}
+                        <span
+                          className="text-xs italic"
+                          style={{ color: 'var(--text-tertiary)', opacity: 0.6 }}
+                        >
+                          No labels
+                        </span>
                       </td>
                       <td className="px-6 py-4">
-                        {client.projectsCount > 0 ? (
+                        {(client.projectCount ?? 0) > 0 ? (
                           <div className="flex items-center gap-2">
                             <span
                               className="px-3 py-1.5 rounded-lg text-sm inline-flex items-center gap-2"
                               style={{
-                                backgroundColor: client.projectsCount >= 10 
-                                  ? '#10B98120' 
-                                  : client.projectsCount >= 1 
-                                    ? '#5B9AFF20' 
-                                    : 'var(--surface-secondary)',
-                                color: client.projectsCount >= 10 
-                                  ? '#10B981' 
-                                  : client.projectsCount >= 1 
-                                    ? '#5B9AFF' 
-                                    : 'var(--text-secondary)',
+                                backgroundColor: (client.projectCount ?? 0) >= 10
+                                  ? '#10B98120'
+                                  : '#5B9AFF20',
+                                color: (client.projectCount ?? 0) >= 10
+                                  ? '#10B981'
+                                  : '#5B9AFF',
                                 fontWeight: 600,
-                                border: `1px solid ${
-                                  client.projectsCount >= 10 
-                                    ? '#10B98130' 
-                                    : client.projectsCount >= 1 
-                                      ? '#5B9AFF30' 
-                                      : 'var(--border-primary)'
-                                }`
+                                border: `1px solid ${(client.projectCount ?? 0) >= 10 ? '#10B98130' : '#5B9AFF30'}`
                               }}
                             >
                               <FolderOpen style={{ width: '14px', height: '14px' }} />
-                              {client.projectsCount}
+                              {client.projectCount}
                             </span>
                           </div>
                         ) : (
-                          <span 
+                          <span
                             className="text-sm px-3 py-1.5 rounded-lg inline-block"
-                            style={{ 
-                              color: 'var(--text-tertiary)',
-                              backgroundColor: 'var(--surface-secondary)'
-                            }}
+                            style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--surface-secondary)' }}
                           >
                             0
                           </span>

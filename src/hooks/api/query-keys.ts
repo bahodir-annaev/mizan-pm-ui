@@ -1,0 +1,73 @@
+// Centralized TanStack Query key factory
+export const queryKeys = {
+  projects: {
+    all: ['projects'] as const,
+    list: () => [...queryKeys.projects.all, 'list'] as const,
+    detail: (id: string) => [...queryKeys.projects.all, 'detail', id] as const,
+    members: (id: string) => [...queryKeys.projects.all, id, 'members'] as const,
+    files: (id: string) => [...queryKeys.projects.all, id, 'files'] as const,
+    timeReport: (id: string) => [...queryKeys.projects.all, id, 'time-report'] as const,
+  },
+  tasks: {
+    all: ['tasks'] as const,
+    list: (params?: object) => [...queryKeys.tasks.all, 'list', params] as const,
+    byProject: (projectId: string) => [...queryKeys.tasks.all, 'project', projectId] as const,
+    tree: (projectId: string) => [...queryKeys.tasks.all, 'project', projectId, 'tree'] as const,
+    detail: (id: string) => [...queryKeys.tasks.all, 'detail', id] as const,
+    checklist: (taskId: string) => [...queryKeys.tasks.all, taskId, 'checklist'] as const,
+    comments: (taskId: string) => [...queryKeys.tasks.all, taskId, 'comments'] as const,
+    participants: (taskId: string) => [...queryKeys.tasks.all, taskId, 'participants'] as const,
+    dependencies: (taskId: string) => [...queryKeys.tasks.all, taskId, 'dependencies'] as const,
+    time: (taskId: string) => [...queryKeys.tasks.all, taskId, 'time'] as const,
+  },
+  users: {
+    all: ['users'] as const,
+    list: () => [...queryKeys.users.all, 'list'] as const,
+    me: () => [...queryKeys.users.all, 'me'] as const,
+    detail: (id: string) => [...queryKeys.users.all, 'detail', id] as const,
+    activeTimer: () => [...queryKeys.users.all, 'me', 'active-timer'] as const,
+    myTime: () => [...queryKeys.users.all, 'me', 'time'] as const,
+  },
+  teams: {
+    all: ['teams'] as const,
+    list: () => [...queryKeys.teams.all, 'list'] as const,
+    detail: (id: string) => [...queryKeys.teams.all, 'detail', id] as const,
+    members: (id: string) => [...queryKeys.teams.all, id, 'members'] as const,
+  },
+  clients: {
+    all: ['clients'] as const,
+    list: () => [...queryKeys.clients.all, 'list'] as const,
+    detail: (id: string) => [...queryKeys.clients.all, 'detail', id] as const,
+    contacts: (id: string) => [...queryKeys.clients.all, id, 'contacts'] as const,
+    files: (id: string) => [...queryKeys.clients.all, id, 'files'] as const,
+  },
+  notifications: {
+    all: ['notifications'] as const,
+    list: () => [...queryKeys.notifications.all, 'list'] as const,
+    unreadCount: () => [...queryKeys.notifications.all, 'unread-count'] as const,
+  },
+  analytics: {
+    all: ['analytics'] as const,
+    overview: () => [...queryKeys.analytics.all, 'overview'] as const,
+    taskCompletion: (days: number) => [...queryKeys.analytics.all, 'task-completion', days] as const,
+    taskDistribution: () => [...queryKeys.analytics.all, 'task-distribution'] as const,
+    teamPerformance: () => [...queryKeys.analytics.all, 'team-performance'] as const,
+    timeByProject: () => [...queryKeys.analytics.all, 'time-by-project'] as const,
+    timeByType: () => [...queryKeys.analytics.all, 'time-by-type'] as const,
+    weeklyProductivity: () => [...queryKeys.analytics.all, 'weekly-productivity'] as const,
+    monthlyReport: (year: number, month: number) => [...queryKeys.analytics.all, 'monthly-report', year, month] as const,
+    recentlyCompleted: (limit: number) => [...queryKeys.analytics.all, 'recently-completed', limit] as const,
+  },
+  budget: {
+    all: ['budget'] as const,
+    overview: () => [...queryKeys.budget.all, 'overview'] as const,
+  },
+  search: {
+    all: ['search'] as const,
+    results: (q: string) => [...queryKeys.search.all, q] as const,
+  },
+  files: {
+    all: ['files'] as const,
+    detail: (id: string) => [...queryKeys.files.all, 'detail', id] as const,
+  },
+};

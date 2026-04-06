@@ -4,8 +4,9 @@
  */
 
 import { useState } from 'react';
-import { 
-  ArrowLeft, 
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
   Pin, 
   MoreHorizontal, 
   Calendar, 
@@ -26,8 +27,9 @@ import { GanttView } from './GanttView';
 import { AddTaskModal } from './AddTaskModal';
 
 interface ProjectDetailProps {
-  projectId: string;
-  onBack: () => void;
+  // Props kept for backward-compat; router params take precedence
+  projectId?: string;
+  onBack?: () => void;
 }
 
 interface Project {
@@ -215,7 +217,12 @@ const generateProjectTasks = (projectId: string) => {
   ];
 };
 
-export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
+export function ProjectDetail({ projectId: propProjectId, onBack: propOnBack }: ProjectDetailProps) {
+  const params = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const projectId = params.id ?? propProjectId ?? '';
+  const onBack = propOnBack ?? (() => navigate('/projects'));
+
   const [activeTab, setActiveTab] = useState<'tasks' | 'overview' | 'board' | 'gantt' | 'files'>('tasks');
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const project = getProjectById(projectId);
@@ -606,9 +613,8 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         )}
 
         {activeTab === 'board' && (
-          <BoardView 
-            tasks={projectTasks}
-            onTaskMove={(taskId, newStatus) => console.log('Task moved:', taskId, newStatus)}
+          <BoardView
+            projectId={projectId}
             onTaskClick={(taskId) => console.log('Task clicked:', taskId)}
           />
         )}

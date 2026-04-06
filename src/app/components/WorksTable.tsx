@@ -25,11 +25,12 @@
  * - Hover effect: increased opacity and stroke width for better visibility
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ChevronDown,
   ChevronRight,
-  MoreHorizontal, 
+  Plus,
+  MoreHorizontal,
   Star, 
   Copy, 
   Trash2, 
@@ -92,29 +93,81 @@ import { ColumnEditorModal, ColumnConfig } from './ColumnEditorModal';
 import { useColumnConfig } from '../hooks/useColumnConfig';
 import { EditableColumnHeader } from './EditableColumnHeader';
 import { EditableWorkCell } from './EditableWorkCell';
-import { TaskMediaControl } from './TaskMediaControl';
+import { TaskTimeTrackingControl } from './TaskTimeTrackingControl';
 import { CompactDateCell } from './CompactDateCell';
+import { useProjectTasks, useAllTasks, useUpdateTask } from '@/hooks/api/useTasks';
+import type { Task } from '@/types/domain';
+import type { TaskStatus, AcceptanceStatus } from '@/types/api';
+
+// Map legacy display strings to TaskStatus enum values
+const LEGACY_STATUS_TO_KEY: Record<string, TaskStatus> = {
+  'Start':       'TODO',
+  'In Progress': 'IN_PROGRESS',
+  'Burning':     'IN_PROGRESS',
+  'End':         'DONE',
+  'Late':        'IN_PROGRESS',
+  'Planning':    'PLANNING',
+  // Pass-through for values already in enum form
+  'PLANNING':    'PLANNING',
+  'TODO':        'TODO',
+  'IN_PROGRESS': 'IN_PROGRESS',
+  'IN_REVIEW':   'IN_REVIEW',
+  'DONE':        'DONE',
+  'CANCELLED':   'CANCELLED',
+};
+
+// Map legacy acceptance strings to AcceptanceStatus enum values
+const LEGACY_ACCEPTANCE_TO_KEY: Record<string, AcceptanceStatus> = {
+  'Pending review':  'PENDING',
+  'Approved':        'ACCEPTED',
+  'Rejected':        'REJECTED',
+  'Needs revision':  'REVISION',
+  // Pass-through
+  'PENDING':   'PENDING',
+  'ACCEPTED':  'ACCEPTED',
+  'REJECTED':  'REJECTED',
+  'REVISION':  'REVISION',
+};
+
+const STATUS_DISPLAY: Record<string, string> = {
+  PLANNING:    'Planning',
+  TODO:        'To Do',
+  IN_PROGRESS: 'In Progress',
+  IN_REVIEW:   'In Review',
+  DONE:        'Done',
+  CANCELLED:   'Cancelled',
+};
+
 
 interface Work {
   id: string;
+  code?: string;
   title: string;
-  project: string;
+  description?: string;
+  project?: string;
+  projectId?: string;
   assignee: {
+    id?: string;
     name: string;
     initials: string;
     color: string;
   };
   participants: Array<{
+    id?: string;
     name: string;
     initials: string;
     color: string;
   }>;
   status: string;
+  statusKey?: string;
   priority: string;
+  priorityKey?: string;
   dateStart: string;
   dateEnd: string;
   progress: number;
   workType: string;
+  volume?: string;
+  unit?: string;
   acceptance: string;
   dependencies?: {
     blockedBy: string[];
@@ -143,344 +196,52 @@ interface Work {
   }>;
 }
 
-const works: Work[] = [
-  {
-    id: '001',
-    title: 'Residential house conceptual design',
-    project: 'proj-1',
-    assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-    participants: [
-      { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-      { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-    ],
-    status: 'In Progress',
-    priority: 'High',
-    dateStart: '12 Jan 2024',
-    dateEnd: '15 Dec 2024',
-    progress: 65,
-    workType: 'Architecture',
-    acceptance: 'Pending review',
-    dependencies: {
-      blockedBy: [],
-      blocks: ['002', '009']
-    },
-    subtasks: [
-      { 
-        title: 'Initial site survey and measurements', 
-        completed: true,
-        assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-        participants: [
-          { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-        ],
-        status: 'End',
-        priority: 'High',
-        dateStart: '12 Jan 2024',
-        dateEnd: '20 Jan 2024',
-        progress: 100,
-        workType: 'Architecture',
-        acceptance: 'Approved'
-      },
-      { 
-        title: 'Create preliminary floor plans', 
-        completed: true,
-        assignee: { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-        participants: [
-          { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-        ],
-        status: 'End',
-        priority: 'High',
-        dateStart: '21 Jan 2024',
-        dateEnd: '05 Feb 2024',
-        progress: 100,
-        workType: 'Architecture',
-        acceptance: 'Approved'
-      },
-      { 
-        title: 'Develop 3D concept models', 
-        completed: false,
-        assignee: { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-        participants: [
-          { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-        ],
-        status: 'In Progress',
-        priority: 'High',
-        dateStart: '06 Feb 2024',
-        dateEnd: '25 Feb 2024',
-        progress: 70,
-        workType: '3D Visualization',
-        acceptance: 'Pending review'
-      },
-      { 
-        title: 'Client presentation preparation', 
-        completed: false,
-        assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-        participants: [
-          { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-          { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-        ],
-        status: 'Start',
-        priority: 'Medium',
-        dateStart: '26 Feb 2024',
-        dateEnd: '05 Mar 2024',
-        progress: 20,
-        workType: 'Documentation',
-        acceptance: 'Pending review'
-      },
-    ]
-  },
-  {
-    id: '002',
-    title: 'Living room interior layouts',
-    project: 'proj-1',
-    assignee: { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-    participants: [
-      { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-    ],
-    status: 'Start',
-    priority: 'High',
-    dateStart: '15 Jan 2024',
-    dateEnd: '20 Mar 2025',
-    progress: 30,
-    workType: 'Interior Design',
-    acceptance: 'Approved',
-    dependencies: {
-      blockedBy: ['001'],
-      blocks: []
-    },
-    subtasks: [
-      { 
-        title: 'Furniture layout planning', 
-        completed: false,
-        assignee: { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-        participants: [],
-        status: 'Start',
-        priority: 'High',
-        dateStart: '15 Jan 2024',
-        dateEnd: '01 Feb 2024',
-        progress: 35,
-        workType: 'Interior Design',
-        acceptance: 'Pending review'
-      },
-      { 
-        title: 'Color scheme selection', 
-        completed: false,
-        assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-        participants: [
-          { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-        ],
-        status: 'Start',
-        priority: 'Medium',
-        dateStart: '02 Feb 2024',
-        dateEnd: '10 Feb 2024',
-        progress: 20,
-        workType: 'Interior Design',
-        acceptance: 'Pending review'
-      },
-      { 
-        title: 'Material samples procurement', 
-        completed: false,
-        assignee: { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-        participants: [
-          { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-        ],
-        status: 'Start',
-        priority: 'Low',
-        dateStart: '11 Feb 2024',
-        dateEnd: '20 Feb 2024',
-        progress: 0,
-        workType: 'Interior Design',
-        acceptance: 'Pending review'
-      },
-    ]
-  },
-  {
-    id: '003',
-    title: 'Facade material selection',
-    project: 'proj-2',
-    assignee: { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-    participants: [
-      { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-    ],
-    status: 'Burning',
-    priority: 'Medium',
-    dateStart: '20 Jan 2024',
-    dateEnd: '10 Dec 2024',
-    progress: 80,
-    workType: 'Exterior Design',
-    acceptance: 'Pending review',
-    dependencies: {
-      blockedBy: [],
-      blocks: ['006']
-    }
-  },
-  {
-    id: '004',
-    title: 'Garden and outdoor space planning',
-    project: 'proj-1',
-    assignee: { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-    participants: [
-      { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-      { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-    ],
-    status: 'In Progress',
-    priority: 'Medium',
-    dateStart: '25 Jan 2024',
-    dateEnd: '30 Mar 2024',
-    progress: 45,
-    workType: 'Landscape',
-    acceptance: 'Approved',
-    subtasks: [
-      { 
-        title: 'Landscape design concept', 
-        completed: true,
-        assignee: { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-        participants: [
-          { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-        ],
-        status: 'End',
-        priority: 'Medium',
-        dateStart: '25 Jan 2024',
-        dateEnd: '05 Feb 2024',
-        progress: 100,
-        workType: 'Landscape',
-        acceptance: 'Approved'
-      },
-      { 
-        title: 'Plant selection and sourcing', 
-        completed: false,
-        assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-        participants: [
-          { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-        ],
-        status: 'In Progress',
-        priority: 'Medium',
-        dateStart: '06 Feb 2024',
-        dateEnd: '20 Feb 2024',
-        progress: 60,
-        workType: 'Landscape',
-        acceptance: 'Pending review'
-      },
-      { 
-        title: 'Irrigation system design', 
-        completed: false,
-        assignee: { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-        participants: [],
-        status: 'Start',
-        priority: 'Low',
-        dateStart: '21 Feb 2024',
-        dateEnd: '10 Mar 2024',
-        progress: 15,
-        workType: 'Engineering',
-        acceptance: 'Pending review'
-      },
-    ]
-  },
-  {
-    id: '005',
-    title: 'Detailed construction drawings package',
-    project: 'proj-2',
-    assignee: { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-    participants: [
-      { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-    ],
-    status: 'End',
-    priority: 'Low',
-    dateStart: '01 Feb 2024',
-    dateEnd: '05 Apr 2024',
-    progress: 95,
-    workType: 'Working Drawings',
-    acceptance: 'Approved',
-  },
-  {
-    id: '006',
-    title: 'Exterior rendering and presentation',
-    project: 'proj-2',
-    assignee: { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-    participants: [
-      { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-      { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-    ],
-    status: 'Late',
-    priority: 'High',
-    dateStart: '05 Feb 2024',
-    dateEnd: '10 Apr 2024',
-    progress: 60,
-    workType: '3D Visualization',
-    acceptance: 'Rejected',
-  },
-  {
-    id: '007',
-    title: 'On-site construction quality control',
-    project: 'proj-2',
-    assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-    participants: [
-      { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-    ],
-    status: 'In Progress',
-    priority: 'High',
-    dateStart: '10 Feb 2024',
-    dateEnd: '15 Apr 2024',
-    progress: 70,
-    workType: 'Author Supervision',
-    acceptance: 'Pending review',
-  },
-  {
-    id: '008',
-    title: 'Project permits and compliance docs',
-    project: 'proj-2',
-    assignee: { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-    participants: [
-      { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-    ],
-    status: 'Start',
-    priority: 'Low',
-    dateStart: '15 Feb 2024',
-    dateEnd: '20 Apr 2024',
-    progress: 25,
-    workType: 'Documentation',
-    acceptance: 'Pending review',
-  },
-  {
-    id: '009',
-    title: 'Structural calculations and MEP coordination',
-    project: 'proj-1',
-    assignee: { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-    participants: [
-      { name: 'Alex Kim', initials: 'AK', color: 'bg-purple-500' },
-    ],
-    status: 'Start',
-    priority: 'Medium',
-    dateStart: '18 Feb 2024',
-    dateEnd: '25 Apr 2024',
-    progress: 15,
-    workType: 'Engineering',
-    acceptance: 'Pending review',
-  },
-  {
-    id: '010',
-    title: 'Client review meeting and revisions',
-    project: 'proj-1',
-    assignee: { name: 'John Doe', initials: 'JD', color: 'bg-blue-500' },
-    participants: [
-      { name: 'Mike Chen', initials: 'MC', color: 'bg-orange-500' },
-      { name: 'Sarah Miller', initials: 'SM', color: 'bg-green-500' },
-    ],
-    status: 'Start',
-    priority: 'High',
-    dateStart: '20 Feb 2024',
-    dateEnd: '28 Apr 2024',
-    progress: 10,
-    workType: 'Client Coordination',
-    acceptance: 'Pending review',
-  },
-];
+function taskToWork(task: Task): Work {
+  return {
+    id: task.id,
+    code: task.code,
+    title: task.title,
+    description: task.description,
+    project: task?.project?.name,
+    projectId: task.projectId,
+    assignee: task.assignee
+      ? { id: task.assignee.id, name: task.assignee.name, initials: task.assignee.initials, color: task.assignee.color }
+      : { name: 'Unassigned', initials: '?', color: 'bg-gray-400' },
+    participants: (task.participants ?? []).map(p => ({ id: p.id, name: p.name, initials: p.initials, color: p.color })),
+    status: task.status,
+    statusKey: LEGACY_STATUS_TO_KEY[task.statusKey ?? task.status] ?? 'TODO',
+    priority: task.priority,
+    priorityKey: task.priorityKey,
+    dateStart: task.startDate ?? '',
+    dateEnd: task.dueDate ?? '',
+    progress: task.progress ?? 0,
+    workType: task.workType ?? '',
+    volume: task.volume,
+    unit: task.unit,
+    acceptance: LEGACY_ACCEPTANCE_TO_KEY[task.acceptance ?? ''] ?? 'PENDING',
+    subtasks: task.subtasks?.map(st => ({
+      title: st.title,
+      completed: st.statusKey === 'DONE' || ['Done', 'End', 'Completed'].includes(st.status),
+      assignee: st.assignee ? { name: st.assignee.name, initials: st.assignee.initials, color: st.assignee.color } : undefined,
+      participants: (st.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
+      status: LEGACY_STATUS_TO_KEY[st.statusKey ?? st.status] ?? 'TODO',
+      priority: st.priority,
+      dateStart: st.startDate ?? '',
+      dateEnd: st.dueDate ?? '',
+      progress: st.progress ?? 0,
+      workType: st.workType ?? '',
+      acceptance: LEGACY_ACCEPTANCE_TO_KEY[st.acceptance ?? ''] ?? 'PENDING',
+    })),
+  };
+}
 
 const statusOptions = [
-  { value: 'In Progress', className: 'status-progress' },
-  { value: 'Start', className: 'status-start' },
-  { value: 'Burning', className: 'status-burning' },
-  { value: 'End', className: 'status-end' },
-  { value: 'Late', className: 'status-late' },
+  { value: 'IN_PROGRESS', className: 'status-progress' },
+  { value: 'TODO',        className: 'status-start' },
+  { value: 'PLANNING',    className: 'status-start' },
+  { value: 'IN_REVIEW',  className: 'status-burning' },
+  { value: 'DONE',       className: 'status-end' },
+  { value: 'CANCELLED',  className: 'status-late' },
 ];
 
 const priorityOptions = [
@@ -490,9 +251,10 @@ const priorityOptions = [
 ];
 
 const acceptanceOptions = [
-  { value: 'Pending review', style: { color: 'var(--text-tertiary)' } },
-  { value: 'Approved', style: { color: 'var(--status-start)' } },
-  { value: 'Rejected', style: { color: 'var(--status-late)' } },
+  { value: 'PENDING',   style: { color: 'var(--text-tertiary)' } },
+  { value: 'ACCEPTED',  style: { color: 'var(--status-start)' } },
+  { value: 'REJECTED',  style: { color: 'var(--status-late)' } },
+  { value: 'REVISION',  style: { color: 'var(--status-burning)' } },
 ];
 
 // Helper function to get task type icon
@@ -521,16 +283,17 @@ const getWorkTypeIcon = (workType: string) => {
   return iconMap[workType] || Home;
 };
 
-// Helper function to get status icon
-const getStatusIcon = (status: string) => {
+// Helper function to get status icon (keyed by TaskStatus enum)
+const getStatusIcon = (statusKey: string) => {
   const iconMap: Record<string, any> = {
-    'In Progress': Play,
-    'Start': Play,
-    'Burning': AlertCircle,
-    'End': CheckCircle2,
-    'Late': Clock,
+    'PLANNING':    Circle,
+    'TODO':        Play,
+    'IN_PROGRESS': Play,
+    'IN_REVIEW':   AlertCircle,
+    'DONE':        CheckCircle2,
+    'CANCELLED':   Clock,
   };
-  return iconMap[status] || Circle;
+  return iconMap[statusKey] || Circle;
 };
 
 // Default column configuration
@@ -554,15 +317,27 @@ interface WorksTableProps {
   projectId?: string;
 }
 
+const EMPTY_TASKS: Task[] = [];
+
 export function WorksTable({ projectId }: WorksTableProps = {}) {
+  const projectQuery = useProjectTasks(projectId);
+  const allQuery = useAllTasks(undefined, { enabled: !projectId });
+  const { data: apiTasks = EMPTY_TASKS, isLoading, isError, error } = projectId ? projectQuery : allQuery;
+  const updateTask = useUpdateTask();
   const [selectedWorks, setSelectedWorks] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
   const [detailTask, setDetailTask] = useState<Work | null>(null);
   const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
-  const [worksData, setWorksData] = useState<Work[]>(works);
+  const [worksData, setWorksData] = useState<Work[]>([]);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Work | null>(null);
+  const [subtaskParent, setSubtaskParent] = useState<{ id: string; title: string; projectId: string } | null>(null);
+
+  // Sync local state from API data whenever it changes
+  useEffect(() => {
+    setWorksData(apiTasks.map(taskToWork));
+  }, [apiTasks]);
   
   const {
     columns,
@@ -579,15 +354,13 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
   const canEditColumns = true; // In real app, check user permissions
   const canEditTasks = true; // In real app, check user permissions
 
-  // Filter works by projectId if provided
-  const filteredWorks = projectId
-    ? worksData.filter((work) => work.project === projectId)
-    : worksData;
+  // useProjectTasks already scopes data to the project; no secondary filter needed
+  const filteredWorks = worksData;
 
   // Sort works: In Progress at top, then by original order
   const sortedWorks = [...filteredWorks].sort((a, b) => {
-    const aInProgress = a.status === 'In Progress';
-    const bInProgress = b.status === 'In Progress';
+    const aInProgress = a.statusKey === 'IN_PROGRESS';
+    const bInProgress = b.statusKey === 'IN_PROGRESS';
     
     if (aInProgress && !bInProgress) return -1;
     if (!aInProgress && bInProgress) return 1;
@@ -595,11 +368,11 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
   });
 
   // Count active tasks
-  const activeTasksCount = sortedWorks.filter(w => w.status === 'In Progress').length;
+  const activeTasksCount = sortedWorks.filter(w => w.statusKey === 'IN_PROGRESS').length;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedWorks(works.map(w => w.id));
+      setSelectedWorks(worksData.map(w => w.id));
     } else {
       setSelectedWorks([]);
     }
@@ -634,15 +407,21 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
     setExpandedTasks(newExpanded);
   };
 
-  // Handler for updating work data
+  // Field name mapping from Work interface to UpdateTaskDto
+  const WORK_FIELD_TO_DTO: Partial<Record<keyof Work, string>> = {
+    dateStart: 'startDate',
+    dateEnd: 'dueDate',
+  };
+
+  // Handler for updating work data — optimistic local update + API call
   const handleUpdateWork = (workId: string, field: keyof Work, value: any) => {
-    setWorksData(prevWorks => 
-      prevWorks.map(work => 
-        work.id === workId 
-          ? { ...work, [field]: value }
-          : work
-      )
+    // Optimistic local update
+    setWorksData(prevWorks =>
+      prevWorks.map(work => work.id === workId ? { ...work, [field]: value } : work)
     );
+    // Persist to API
+    const apiField = WORK_FIELD_TO_DTO[field] ?? field;
+    updateTask.mutate({ id: workId, dto: { [apiField]: value } });
   };
 
   const getStatusColor = (status: string) => {
@@ -672,32 +451,24 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
 
   const handleStartTask = (workId: string) => {
     if (!canEditTasks) return;
-    
     setWorksData(prevWorks =>
-      prevWorks.map(work =>
-        work.id === workId
-          ? { ...work, status: 'In Progress' }
-          : work
-      )
+      prevWorks.map(work => work.id === workId ? { ...work, statusKey: 'IN_PROGRESS', status: 'In Progress' } : work)
     );
+    updateTask.mutate({ id: workId, dto: { status: 'IN_PROGRESS' } });
   };
 
   const handlePauseTask = (workId: string) => {
     if (!canEditTasks) return;
-    
     setWorksData(prevWorks =>
-      prevWorks.map(work =>
-        work.id === workId
-          ? { ...work, status: 'Start' }
-          : work
-      )
+      prevWorks.map(work => work.id === workId ? { ...work, statusKey: 'TODO', status: 'To Do' } : work)
     );
+    updateTask.mutate({ id: workId, dto: { status: 'TODO' } });
   };
 
-  const handleToggleTaskStatus = (workId: string, currentStatus: string) => {
-    if (currentStatus === 'In Progress') {
+  const handleToggleTaskStatus = (workId: string, currentStatusKey: string) => {
+    if (currentStatusKey === 'IN_PROGRESS') {
       handlePauseTask(workId);
-    } else if (currentStatus === 'Start' || currentStatus === 'Burning') {
+    } else if (currentStatusKey === 'TODO' || currentStatusKey === 'PLANNING') {
       handleStartTask(workId);
     }
   };
@@ -705,6 +476,25 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
   // If in detail view mode, show TaskDetailPage
   if (viewMode === 'detail' && detailTask) {
     return <TaskDetailPage task={detailTask} onBack={handleBackToTable} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading tasks...</span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    console.error('[WorksTable] Failed to load tasks:', error);
+    return (
+      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <span className="text-sm" style={{ color: '#EF4444' }}>
+          Failed to load tasks: {(error as Error)?.message ?? 'Unknown error'}
+        </span>
+      </div>
+    );
   }
 
   return (
@@ -727,6 +517,16 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
         }}
         initialData={editingTask}
         mode="edit"
+      />
+
+      {/* Add Subtask Modal */}
+      <AddTaskModal
+        isOpen={!!subtaskParent}
+        onClose={() => setSubtaskParent(null)}
+        mode="create"
+        defaultProjectId={subtaskParent?.projectId}
+        parentTaskId={subtaskParent?.id}
+        parentTaskTitle={subtaskParent?.title}
       />
 
       {/* Table */}
@@ -826,18 +626,19 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
               )}
               {sortedWorks.map((work, index) => {
                 const isSelected = selectedWorks.includes(work.id);
-                const isActive = work.status === 'In Progress';
-                const isLastActiveTask = isActive && sortedWorks[index + 1]?.status !== 'In Progress';
+                const isActive = work.statusKey === 'IN_PROGRESS';
+                const isLastActiveTask = isActive && sortedWorks[index + 1]?.statusKey !== 'IN_PROGRESS';
                 const priorityInfo = getPriorityIcon(work.priority);
                 const PriorityIcon = priorityInfo.icon;
                 const TaskTypeIcon = getTaskTypeIcon(work.title);
                 const WorkTypeIcon = getWorkTypeIcon(work.workType);
-                const StatusIcon = getStatusIcon(work.status);
-                const canStart = work.status === 'Start' || work.status === 'Burning';
-                const canPause = work.status === 'In Progress';
+                const StatusIcon = getStatusIcon(work.statusKey ?? '');
+                const canStart = work.statusKey === 'TODO' || work.statusKey === 'PLANNING';
+                const canPause = work.statusKey === 'IN_PROGRESS';
 
                 const hasExpandedSubtasks = work.subtasks && work.subtasks.length > 0 && expandedTasks.has(work.id);
 
+                // Task Row
                 const mainRow = (
                   <tr
                     key={work.id}
@@ -867,7 +668,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                       // Enter or Space to start/pause task
                       if ((e.key === 'Enter' || e.key === ' ') && canEditTasks && (canStart || canPause)) {
                         e.preventDefault();
-                        handleToggleTaskStatus(work.id, work.status);
+                        handleToggleTaskStatus(work.id, work.statusKey ?? '');
                       }
                     }}
                     onMouseEnter={(e) => {
@@ -902,7 +703,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                     </td>
                     <td className="px-4 py-4 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                       <div className="flex items-center h-full">
-                        {work.id}
+                        {work.code}
                       </div>
                     </td>
                     <td className="px-4 py-4" style={{ position: 'relative' }}>
@@ -1138,16 +939,17 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                             </Popover>
                           )}
                         </div>
-                        {/* Priority - Text Only */}
-                        <div className="flex items-center ml-6" onClick={(e) => e.stopPropagation()}>
-                          <Select 
-                            value={work.priority} 
+                        {/* Priority + Add Subtask */}
+                        <div className="flex items-center ml-6 gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={work.priority}
                             onValueChange={(newPriority) => {
                               setWorksData(prevWorks =>
                                 prevWorks.map(w =>
                                   w.id === work.id ? { ...w, priority: newPriority } : w
                                 )
                               );
+                              updateTask.mutate({ id: work.id, dto: { priority: newPriority.toUpperCase() as import('@/types/api').TaskPriority } });
                             }}
                           >
                             <SelectTrigger 
@@ -1175,6 +977,14 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                               })}
                             </SelectContent>
                           </Select>
+                          <button
+                            title="Add subtask"
+                            onClick={() => setSubtaskParent({ id: work.id, title: work.title, projectId: work.projectId ?? '' })}
+                            className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--surface-hover)] ml-auto"
+                            style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
+                          >
+                            <Plus style={{ width: '13px', height: '13px' }} />
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -1246,14 +1056,17 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                     <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                       {/* Unified Workflow - Single button with all states */}
                       <UnifiedWorkflowCell
-                        executionState={work.status}
+                        executionState={work.statusKey ?? 'TODO'}
                         reviewState={work.acceptance}
-                        onExecutionChange={(newStatus) => {
+                        onExecutionChange={(newStatusKey) => {
                           setWorksData(prevWorks =>
                             prevWorks.map(w =>
-                              w.id === work.id ? { ...w, status: newStatus } : w
+                              w.id === work.id
+                                ? { ...w, statusKey: newStatusKey, status: STATUS_DISPLAY[newStatusKey] ?? newStatusKey }
+                                : w
                             )
                           );
+                          updateTask.mutate({ id: work.id, dto: { status: newStatusKey as TaskStatus } });
                         }}
                         onReviewChange={(newReview) => {
                           setWorksData(prevWorks =>
@@ -1261,6 +1074,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                               w.id === work.id ? { ...w, acceptance: newReview } : w
                             )
                           );
+                          updateTask.mutate({ id: work.id, dto: { acceptance: newReview as AcceptanceStatus } });
                         }}
                         isActive={isActive}
                       />
@@ -1362,7 +1176,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                           <Ellipsis className="w-4 h-4" />
                         </button>
                         </div>
-                        <TaskMediaControl taskId={work.id} hasAudio={true} isSubtask={false} />
+                        <TaskTimeTrackingControl taskId={work.id} />
                       </div>
                     </td>
                     <td className="px-4 py-4"></td>
@@ -1711,7 +1525,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                         <UnifiedWorkflowCell
                           executionState={subtask.status}
                           reviewState={subtask.acceptance}
-                          onExecutionChange={(newStatus) => {
+                          onExecutionChange={(newStatusKey) => {
                             setWorksData(prevWorks =>
                               prevWorks.map(w =>
                                 w.id === work.id && w.subtasks
@@ -1719,7 +1533,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                                       ...w,
                                       subtasks: w.subtasks.map((st, i) =>
                                         i === subIndex
-                                          ? { ...st, status: newStatus }
+                                          ? { ...st, status: newStatusKey }
                                           : st
                                       )
                                     }
@@ -1743,7 +1557,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                               )
                             );
                           }}
-                          isActive={subtask.status === 'In Progress'}
+                          isActive={subtask.status === 'IN_PROGRESS'}
                         />
                       </td>
                       {/* Dates - Compact View */}
@@ -1869,7 +1683,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                             <Ellipsis className="w-4 h-4" />
                           </button>
                           </div>
-                          <TaskMediaControl taskId={`${work.id}-sub-${subIndex}`} hasAudio={true} isSubtask={false} />
+                          <TaskTimeTrackingControl taskId={`${work.id}-sub-${subIndex}`} />
                         </div>
                       </td>
                       <td className="px-4 py-4"></td>

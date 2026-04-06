@@ -5,6 +5,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useCreateProject } from '@/hooks/api/useProjects';
+import { useClients } from '@/hooks/api/useClients';
+import type { CreateProjectDto, ProjectType } from '@/types/api';
 import { 
   X, 
   ChevronDown, 
@@ -12,7 +15,6 @@ import {
   Building2,
   Layers,
   Flag,
-  Tag,
   FileText,
   DollarSign,
   Ruler,
@@ -24,7 +26,7 @@ import {
   Clock,
   CircleDot
 } from 'lucide-react';
-import { useBudget, parseBudgetInput, formatBudget } from '@/app/contexts/BudgetContext';
+// import { useBudget, parseBudgetInput, formatBudget } from '@/app/contexts/BudgetContext';
 
 interface AddProjectModalProps {
   isOpen: boolean;
@@ -93,19 +95,32 @@ const getPriorityConfig = (priority: string) => {
   }
 };
 
+const PROJECT_TYPE_MAP: Record<string, ProjectType> = {
+  'Residential': 'RESIDENTIAL',
+  'Commercial': 'COMMERCIAL',
+  'Industrial': 'INDUSTRIAL',
+  'Mixed Use': 'OTHER',
+  'Interior': 'OTHER',
+};
+
+const PRIORITY_MAP: Record<string, string> = {
+  'Low': 'LOW',
+  'Medium': 'MEDIUM',
+  'High': 'HIGH',
+  'Critical': 'URGENT',
+};
+
 export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' }: AddProjectModalProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const { canAddBudget, getRemaining, totalLimit, formatBudget: formatBudgetFn } = useBudget();
-  const [budgetInput, setBudgetInput] = useState('');
-  const [budgetError, setBudgetError] = useState('');
-  
+  const createProject = useCreateProject();
+  const { data: clients = [] } = useClients();
+
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    client: '',
+    clientId: '',
     projectType: '',
-    status: 'Start',
     priority: 'Medium',
     startDate: '',
     endDate: '',
@@ -115,7 +130,6 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
     year: '',
     cost: '',
     labels: [] as string[],
-    type: 'Interior'
   });
 
   // Populate form data when initialData changes (edit mode)
@@ -124,9 +138,8 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
       setFormData({
         title: initialData.name || '',
         description: initialData.description || '',
-        client: initialData.client || '',
+        clientId: initialData.clientId || '',
         projectType: initialData.type || '',
-        status: initialData.status || 'Start',
         priority: initialData.priority || 'Medium',
         startDate: initialData.dateStart || '',
         endDate: initialData.dateEnd || '',
@@ -136,16 +149,14 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
         year: initialData.year || '',
         cost: initialData.cost || '',
         labels: initialData.labels || [],
-        type: initialData.type || 'Interior'
       });
     } else if (mode === 'create') {
       // Reset form for create mode
       setFormData({
         title: '',
         description: '',
-        client: '',
+        clientId: '',
         projectType: '',
-        status: 'Start',
         priority: 'Medium',
         startDate: '',
         endDate: '',
@@ -155,7 +166,6 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
         year: '',
         cost: '',
         labels: [],
-        type: 'Interior'
       });
     }
   }, [initialData, mode]);
@@ -171,14 +181,26 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
 
   if (!isOpen) return null;
 
+  const buildDto = (): CreateProjectDto => ({
+    name: formData.title,
+    description: formData.description || undefined,
+    projectType: formData.projectType ? (PROJECT_TYPE_MAP[formData.projectType] ?? 'OTHER') : undefined,
+    priority: formData.priority ? (PRIORITY_MAP[formData.priority] ?? formData.priority) : undefined,
+    clientId: formData.clientId || undefined,
+    startDate: formData.startDate || undefined,
+    dueDate: formData.endDate || undefined,
+    areaSqm: formData.area ? parseFloat(formData.area) : undefined,
+    budget: formData.cost ? parseFloat(formData.cost) : undefined,
+  });
+
   const handleSave = () => {
-    console.log('Save project:', formData);
-    onClose();
+    if (!formData.title.trim()) return;
+    createProject.mutate(buildDto(), { onSuccess: () => onClose() });
   };
 
   const handleSaveAndView = () => {
-    console.log('Save and view project:', formData);
-    onClose();
+    if (!formData.title.trim()) return;
+    createProject.mutate(buildDto(), { onSuccess: () => onClose() });
   };
 
   return (
@@ -296,15 +318,12 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
                   {/* Client */}
                   <SelectField
                     label="Client"
-                    value={formData.client}
-                    onChange={(value) => setFormData({ ...formData, client: value })}
-                    options={[
-                      'Bobur Construction',
-                      'Elite Developers',
-                      'Modern Spaces LLC',
-                      'Urban Design Co',
-                      'Prestige Homes'
-                    ]}
+                    value={clients.find(c => c.id === formData.clientId)?.name ?? ''}
+                    onChange={(name) => {
+                      const client = clients.find(c => c.name === name);
+                      setFormData({ ...formData, clientId: client?.id ?? '' });
+                    }}
+                    options={clients.map(c => c.name)}
                     placeholder="Select client"
                     icon={<Building2 style={{ width: '14px', height: '14px' }} />}
                   />
@@ -314,43 +333,28 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
                     label="Project type"
                     value={formData.projectType}
                     onChange={(value) => setFormData({ ...formData, projectType: value })}
-                    options={[
-                      'Interior',
-                      'Residential',
-                      'Commercial',
-                      'Mixed Use',
-                      'Industrial'
-                    ]}
+                    options={['Residential', 'Commercial', 'Industrial', 'Mixed Use', 'Interior']}
                     placeholder="Select type"
                     icon={<Layers style={{ width: '14px', height: '14px' }} />}
                   />
                 </div>
               </div>
 
-              {/* Status & Planning Section */}
+              {/* Planning Section */}
               <div className="space-y-4 pt-4">
-                <h3 
+                <h3
                   className="text-sm font-semibold"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Status & Planning
+                  Planning
                 </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Status */}
-                  <StatusSelectField
-                    label="Status"
-                    value={formData.status}
-                    onChange={(value) => setFormData({ ...formData, status: value })}
-                  />
 
-                  {/* Priority */}
-                  <PrioritySelectField
-                    label="Priority"
-                    value={formData.priority}
-                    onChange={(value) => setFormData({ ...formData, priority: value })}
-                  />
-                </div>
+                {/* Priority */}
+                <PrioritySelectField
+                  label="Priority"
+                  value={formData.priority}
+                  onChange={(value) => setFormData({ ...formData, priority: value })}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Start Date */}
@@ -545,20 +549,6 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
                   />
                 </div>
 
-                {/* Type */}
-                <SelectField
-                  label="Type"
-                  value={formData.type}
-                  onChange={(value) => setFormData({ ...formData, type: value })}
-                  options={[
-                    'Interior',
-                    'Residential',
-                    'Commercial',
-                    'Industrial'
-                  ]}
-                  placeholder="Select type"
-                  icon={<Tag style={{ width: '14px', height: '14px' }} />}
-                />
               </div>
             </div>
           </div>

@@ -9,12 +9,13 @@ import { BoardView } from './BoardView';
 import { GanttView } from './GanttView';
 import { FilterBar } from './FilterBar';
 import { TaskDetailModal } from './TaskDetailModal';
+import { useBoardTasks } from '@/hooks/api/useTasks';
 
 type ViewType = 'list' | 'board' | 'gantt';
 
-// Sample task data for BoardView (using same structure as WorksTable)
-const generateBoardTasks = () => {
-  return [
+// Legacy mock array kept only for reference during Phase 2 migration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _LEGACY_BOARD_TASKS = [
     {
       id: '001',
       title: 'Residential house conceptual design',
@@ -210,11 +211,10 @@ const generateBoardTasks = () => {
       progress: 25
     },
   ];
-};
 
 export function WorksTableWrapper() {
+  const { data: boardTasks = [] } = useBoardTasks();
   const [activeView, setActiveView] = useState<ViewType>('list');
-  const [boardTasks, setBoardTasks] = useState(generateBoardTasks());
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const handleTaskMove = (taskId: string, newStatus: string) => {

@@ -152,7 +152,7 @@ function TaskCard({
 
   const bgColor = statusColors[task.status] || statusColors['Not Started'];
   const priorityColor = priorityColors[task.priority] || priorityColors['Medium'];
-  const visibleParticipants = [task.assignee, ...(task.participants || [])].slice(0, 3);
+  const visibleParticipants = [task.assignee, ...(task.participants || [])].filter(Boolean).slice(0, 3);
 
   return (
     <div

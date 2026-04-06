@@ -9,12 +9,13 @@ import { TeamDashboard } from './components/TeamDashboard';
 import { Settings } from './components/Settings';
 import { TeamManagement } from './components/TeamManagement';
 import { Clients } from './components/Clients';
-import { BudgetDisplay } from './components/BudgetDisplay';
+// import { BudgetDisplay } from './components/BudgetDisplay';
 import { useTheme } from './components/ThemeSwitcher';
 import { TranslationProvider } from './contexts/TranslationContext';
-import { MediaPlayerProvider } from '@/contexts/MediaPlayerContext';
+import { TimeTrackingProvider } from '@/contexts/TimeTrackingContext';
 import { OverlayProvider } from '@/app/contexts/OverlayContext';
 import { BudgetProvider } from '@/app/contexts/BudgetContext';
+import { AuthProvider } from '@/app/auth/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
@@ -25,9 +26,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <TranslationProvider>
-        <MediaPlayerProvider>
-          <OverlayProvider>
-            <BudgetProvider>
+        <OverlayProvider>
+          <BudgetProvider>
+            <AuthProvider>
+              <TimeTrackingProvider>
               <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
                 <Sidebar 
                   activeView={activeView} 
@@ -68,7 +70,7 @@ export default function App() {
                           {/* Scrollable Content */}
                           <div className="flex-1 overflow-auto">
                             <div className="p-8 pt-6 space-y-6">
-                              <BudgetDisplay />
+                              {/* <BudgetDisplay /> */}
                               <ProjectTable />
                             </div>
                           </div>
@@ -100,9 +102,10 @@ export default function App() {
                   </main>
                 </div>
               </div>
-            </BudgetProvider>
-          </OverlayProvider>
-        </MediaPlayerProvider>
+              </TimeTrackingProvider>
+            </AuthProvider>
+          </BudgetProvider>
+        </OverlayProvider>
       </TranslationProvider>
     </ErrorBoundary>
   );

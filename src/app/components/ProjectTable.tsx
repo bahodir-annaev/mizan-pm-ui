@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Folder, Building2, Calendar, CalendarCheck, Workflow, Layers, Tag } from 'lucide-react';
 import { TaskDetailPage } from './TaskDetailPage';
 import { AddTaskRow } from './AddTaskRow';
@@ -17,25 +17,11 @@ import { EditableProjectCell } from './EditableProjectCell';
 import { ProjectScopePopover } from './ProjectScopePopover';
 import { ProjectTaskDetailOverlay } from './ProjectTaskDetailOverlay';
 import { ProjectsToolbar } from './ProjectsToolbar';
+import { useProjects } from '@/hooks/api/useProjects';
+import type { Project } from '@/types/domain';
 
-interface Project {
-  id: string;
-  name: string;
-  client: string;
-  dateStart: string;
-  dateEnd: string;
-  holat: number;
-  status: string;
-  size: string;
-  kvadratura: string;
-  type: string;
-  progress: number; // Added for the detail panel
-  description?: string;
-  complexity?: string;
-  duration?: string;
-}
-
-const projects: Project[] = [
+// Legacy mock fallback — replaced by useProjects() hook below
+const _LEGACY_PROJECTS: Project[] = [
   {
     id: 'PRJ-001',
     name: 'Bobur residence interior',
@@ -197,12 +183,18 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 ];
 
 export function ProjectTable() {
+  const { data: serverProjects = _LEGACY_PROJECTS } = useProjects();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
   const [detailTask, setDetailTask] = useState<Project | null>(null);
   const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
-  const [projectsData, setProjectsData] = useState<Project[]>(projects);
+  const [projectsData, setProjectsData] = useState<Project[]>(_LEGACY_PROJECTS);
+
+  // Sync local state with server data when it loads
+  useEffect(() => {
+    if (serverProjects.length) setProjectsData(serverProjects);
+  }, [serverProjects]);
 
   const {
     columns,

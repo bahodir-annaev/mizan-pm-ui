@@ -15,7 +15,7 @@ import {
   Filter
 } from 'lucide-react';
 import { AddProjectModal } from './AddProjectModal';
-import { useBudget } from '@/app/contexts/BudgetContext';
+// import { useBudget } from '@/app/contexts/BudgetContext';
 
 interface ProjectsToolbarProps {
   onAddProject?: () => void;
@@ -26,9 +26,9 @@ export function ProjectsToolbar({ onAddProject }: ProjectsToolbarProps) {
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   
-  // Budget integration
-  const { isBurning } = useBudget();
-  const budgetAtLimit = isBurning();
+  // // Budget integration
+  // const { isBurning } = useBudget();
+  // const budgetAtLimit = isBurning();
 
   // Filter options
   const projectTypes = ['Interior', 'Residential', 'Commercial', 'Mixed Use'];
@@ -190,17 +190,15 @@ export function ProjectsToolbar({ onAddProject }: ProjectsToolbarProps) {
 
           {/* Add Project - Primary Action */}
           <button
-            onClick={() => !budgetAtLimit && setIsAddProjectModalOpen(true)}
-            disabled={budgetAtLimit}
+            onClick={() => setIsAddProjectModalOpen(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all"
-            style={{ 
-              backgroundColor: budgetAtLimit ? 'var(--surface-tertiary)' : 'var(--accent-primary)',
-              color: budgetAtLimit ? 'var(--text-tertiary)' : '#ffffff',
-              boxShadow: budgetAtLimit ? 'none' : '0 1px 3px rgba(59, 130, 246, 0.2)',
-              cursor: budgetAtLimit ? 'not-allowed' : 'pointer',
-              opacity: budgetAtLimit ? 0.5 : 1
+            style={{
+              backgroundColor: 'var(--accent-primary)',
+              color: '#ffffff',
+              boxShadow: '0 1px 3px rgba(59, 130, 246, 0.2)',
+              cursor: 'pointer',
             }}
-            title={budgetAtLimit ? 'Byudjet limitiga yetib keldingiz. Loyiha ocha olmaysiz.' : 'Yangi loyiha qo\'shish'}
+            title="Add new project"
           >
             <Plus style={{ width: '16px', height: '16px' }} />
             <span className="text-xs font-semibold">Add project</span>

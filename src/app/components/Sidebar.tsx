@@ -1,71 +1,40 @@
-import { LayoutDashboard, FolderKanban, Briefcase, ChartBar, Settings, Users, Building2, ChevronDown, ChevronRight, Pin, Folder, Plus, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Briefcase, ChartBar, Settings, Users, Building2, ChevronDown, ChevronRight, Pin, Plus, MoreHorizontal } from 'lucide-react';
 import { Logo } from './Logo';
 import { useTranslation } from '../contexts/TranslationContext';
 import { MiroSidebarMenu } from './MiroSidebarMenu';
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useSidebarProjects } from '@/hooks/api/useProjects';
+
+const PALETTE = ['#6366f1', '#22c55e', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#3b82f6', '#eab308'];
 
 interface SidebarProps {
-  activeView: 'dashboard' | 'projects' | 'tasks' | 'analytics' | 'settings' | 'team' | 'clients';
-  onViewChange: (view: 'dashboard' | 'projects' | 'tasks' | 'analytics' | 'settings' | 'team' | 'clients') => void;
+  // Legacy props (no longer required — router state is used instead)
+  currentPath?: string;
+  activeView?: string;
+  onViewChange?: (view: string) => void;
   onProjectSelect?: (projectId: string) => void;
   selectedProjectId?: string | null;
 }
 
-export function Sidebar({ activeView, onViewChange, onProjectSelect, selectedProjectId }: SidebarProps) {
+export function Sidebar({ currentPath }: SidebarProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activePath = currentPath ?? location.pathname;
 
   const navItems = [
-    { icon: LayoutDashboard, label: t('nav.dashboard'), key: 'dashboard' as const },
-    { icon: FolderKanban, label: t('nav.projects'), key: 'projects' as const },
-    { icon: Briefcase, label: t('nav.tasks'), key: 'tasks' as const },
-    { icon: ChartBar, label: t('nav.analytics'), key: 'analytics' as const },
-    { icon: Users, label: t('nav.team'), key: 'team' as const },
-    { icon: Building2, label: t('nav.clients'), key: 'clients' as const },
-    { icon: Settings, label: t('nav.settings'), key: 'settings' as const },
+    { icon: LayoutDashboard, label: t('nav.dashboard'), key: 'dashboard' as const, path: '/dashboard' },
+    { icon: FolderKanban, label: t('nav.projects'), key: 'projects' as const, path: '/projects' },
+    { icon: Briefcase, label: t('nav.tasks'), key: 'tasks' as const, path: '/tasks' },
+    { icon: ChartBar, label: t('nav.analytics'), key: 'analytics' as const, path: '/analytics' },
+    { icon: Users, label: t('nav.team'), key: 'team' as const, path: '/team' },
+    { icon: Building2, label: t('nav.clients'), key: 'clients' as const, path: '/clients' },
+    { icon: Settings, label: t('nav.settings'), key: 'settings' as const, path: '/settings' },
   ];
 
   const [isProjectsMenuOpen, setProjectsMenuOpen] = useState(true);
-
-  // Sample projects data
-  const projects = [
-    { 
-      id: 'proj-1', 
-      name: 'Main Building Project', 
-      color: 'bg-blue-500',
-      isPinned: false,
-      subprojects: [
-        { id: 'sub-1', name: 'Foundation Work' },
-        { id: 'sub-2', name: 'Structural Design' },
-      ]
-    },
-    { 
-      id: 'proj-2', 
-      name: 'Residential Complex', 
-      color: 'bg-green-500',
-      isPinned: false,
-      subprojects: [
-        { id: 'sub-3', name: 'Tower A' },
-        { id: 'sub-4', name: 'Tower B' },
-        { id: 'sub-5', name: 'Parking Structure' },
-      ]
-    },
-    { 
-      id: 'proj-3', 
-      name: 'Office Renovation', 
-      color: 'bg-purple-500',
-      isPinned: false,
-      subprojects: []
-    },
-    { 
-      id: 'proj-4', 
-      name: 'City Plaza Development', 
-      color: 'bg-orange-500',
-      isPinned: false,
-      subprojects: [
-        { id: 'sub-6', name: 'Retail Spaces' },
-      ]
-    },
-  ];
+  const { data: projects = [], isLoading: projectsLoading } = useSidebarProjects();
 
   return (
     <aside className="w-64 h-screen flex flex-col border-r" style={{
@@ -81,17 +50,11 @@ export function Sidebar({ activeView, onViewChange, onProjectSelect, selectedPro
         {/* Main Navigation - excluding Projects */}
         {navItems.filter(item => item.key !== 'projects').map((item) => {
           const Icon = item.icon;
-          const isActive = activeView === item.key;
+          const isActive = activePath === item.path || activePath.startsWith(item.path + '/');
           return (
             <button
               key={item.key}
-              onClick={() => {
-                onViewChange(item.key);
-                // Clear selected project when switching to other views
-                if (selectedProjectId) {
-                  onProjectSelect?.(null as any);
-                }
-              }}
+              onClick={() => navigate(item.path)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors"
               style={{
                 backgroundColor: isActive ? 'var(--accent-primary)' : 'transparent',
@@ -120,21 +83,17 @@ export function Sidebar({ activeView, onViewChange, onProjectSelect, selectedPro
           <div 
             className="w-full flex items-center gap-2 px-3 py-3 rounded-lg mb-1 group"
             style={{
-              backgroundColor: (activeView === 'projects' && !selectedProjectId) ? 'var(--surface-secondary)' : 'transparent',
+              backgroundColor: activePath === '/projects' ? 'var(--surface-secondary)' : 'transparent',
             }}
           >
             <button
               onClick={() => {
                 setProjectsMenuOpen(!isProjectsMenuOpen);
-                // Clear selected project when clicking Projects header
-                if (activeView === 'projects' && selectedProjectId) {
-                  onProjectSelect?.(null as any);
-                }
-                onViewChange('projects');
+                navigate('/projects');
               }}
               className="flex items-center gap-3 flex-1 transition-colors"
               style={{
-                color: (activeView === 'projects' && !selectedProjectId) ? 'var(--text-primary)' : 'var(--text-secondary)'
+                color: activePath.startsWith('/projects') ? 'var(--text-primary)' : 'var(--text-secondary)'
               }}
             >
               {isProjectsMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -181,45 +140,51 @@ export function Sidebar({ activeView, onViewChange, onProjectSelect, selectedPro
           {/* Projects List */}
           {isProjectsMenuOpen && (
             <div className="ml-4 mt-1 space-y-0.5">
-              {projects.map((project) => (
-                <button
-                  key={project.id}
-                  onClick={() => {
-                    onProjectSelect?.(project.id);
-                    onViewChange('projects');
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors group"
-                  style={{
-                    backgroundColor: selectedProjectId === project.id ? 'var(--surface-secondary)' : 'transparent',
-                    color: 'var(--text-secondary)'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedProjectId !== project.id) {
-                      e.currentTarget.style.backgroundColor = 'var(--surface-tertiary)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedProjectId !== project.id) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  <div 
-                    className={`w-2 h-2 rounded-full ${project.color}`}
-                    style={{ flexShrink: 0 }}
-                  />
-                  <span className="text-sm flex-1 truncate text-left">{project.name}</span>
-                  {project.isPinned && (
-                    <Pin className="w-3 h-3 opacity-60" style={{ flexShrink: 0 }} />
-                  )}
-                </button>
-              ))}
+              {projectsLoading ? (
+                [1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 animate-pulse">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--border-secondary)' }} />
+                    <div className="h-3 rounded flex-1" style={{ backgroundColor: 'var(--border-secondary)' }} />
+                  </div>
+                ))
+              ) : (
+                projects.map((project, idx) => (
+                  <button
+                    key={project.id}
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors group"
+                    style={{
+                      backgroundColor: activePath === `/projects/${project.id}` ? 'var(--surface-secondary)' : 'transparent',
+                      color: 'var(--text-secondary)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activePath !== `/projects/${project.id}`) {
+                        e.currentTarget.style.backgroundColor = 'var(--surface-tertiary)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activePath !== `/projects/${project.id}`) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ flexShrink: 0, backgroundColor: PALETTE[idx % PALETTE.length] }}
+                    />
+                    <span className="text-sm flex-1 truncate text-left">{project.name}</span>
+                    {project.isPinned && (
+                      <Pin className="w-3 h-3 opacity-60" style={{ flexShrink: 0 }} />
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
       </nav>
 
-      <MiroSidebarMenu currentView={activeView} />
+      <MiroSidebarMenu currentView={activePath.replace('/', '') as any} />
     </aside>
   );
 }

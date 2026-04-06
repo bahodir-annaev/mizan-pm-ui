@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import { ArrowLeft, Star, Users, FileText, FolderOpen, CheckSquare, Paperclip, Calendar, Plus, Building2, User, MapPin, Phone, Hash, ChevronDown, HelpCircle, Check } from 'lucide-react';
 import { ProjectDetail } from './ProjectDetail';
+import { useClientContacts, useToggleClientFavorite, useUpdateClient } from '@/hooks/api/useClients';
+import type { Client } from '@/types/domain';
+import type { ClientType } from '@/types/api';
 
 interface ClientDetailProps {
-  client: {
-    id: number;
-    name: string;
-    contactPerson: string;
-    phone: string;
-    group: string;
-    labels: string[];
-    projectsCount: number;
-  };
+  client: Client;
   onBack: () => void;
 }
 
@@ -19,30 +14,52 @@ type DetailTab = 'contacts' | 'info' | 'projects' | 'tasks' | 'files' | 'events'
 
 export function ClientDetail({ client, onBack }: ClientDetailProps) {
   const [activeTab, setActiveTab] = useState<DetailTab>('contacts');
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(client.isFavorite);
   const [selectedProject, setSelectedProject] = useState<{ id: string; name: string; badge?: string } | null>(null);
-  
+
+  const { data: contacts = [] } = useClientContacts(client.id);
+  const toggleFavorite = useToggleClientFavorite();
+  const updateClient = useUpdateClient();
+
+  const typeFromDomain = (t: string): 'organization' | 'person' =>
+    t === 'Individual' ? 'person' : 'organization';
+
   // Form state for Client Information tab
-  const [clientType, setClientType] = useState<'organization' | 'person'>('organization');
+  const [clientType, setClientType] = useState<'organization' | 'person'>(typeFromDomain(client.type));
   const [formData, setFormData] = useState({
     companyName: client.name,
     owner: 'MIZAN ARCHITECTURE',
-    address: 'Markaz',
-    city: 'Toshkent',
-    state: 'Штат',
-    postalCode: '100000',
-    country: 'Узбекистан',
-    phone: client.phone || '+96888882332',
-    website: 'Сайт',
-    vatNumber: 'Регистрационный номер плательщика НДС',
-    gstNumber: 'Номер GST',
-    clientGroups: client.group || 'Группы клиентов',
-    labels: client.labels.join(', ') || 'Ярлыки'
+    address: client.address ?? '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: '',
+    phone: client.phone ?? '',
+    website: client.website ?? '',
+    vatNumber: '',
+    gstNumber: '',
+    clientGroups: '',
+    labels: ''
   });
 
+  const handleToggleFavorite = () => {
+    toggleFavorite.mutate(client.id, {
+      onSuccess: (updated) => setIsFavorite(updated.isFavorite),
+    });
+  };
+
   const handleSaveClientInfo = () => {
-    console.log('Saving client info:', formData);
-    // Here you would typically update the client data
+    const clientTypeEnum: ClientType = clientType === 'person' ? 'INDIVIDUAL' : 'COMPANY';
+    updateClient.mutate({
+      id: client.id,
+      dto: {
+        name: formData.companyName,
+        clientType: clientTypeEnum,
+        phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        website: formData.website || undefined,
+      },
+    });
   };
 
   // If a project is selected, show project detail view
@@ -100,7 +117,7 @@ export function ClientDetail({ client, onBack }: ClientDetailProps) {
               </h1>
               
               <button
-                onClick={() => setIsFavorite(!isFavorite)}
+                onClick={handleToggleFavorite}
                 className="p-1 transition-colors"
                 style={{ 
                   color: isFavorite ? '#FFB547' : 'var(--text-tertiary)'
@@ -220,65 +237,90 @@ export function ClientDetail({ client, onBack }: ClientDetailProps) {
               </div>
             </div>
 
-            {/* Empty State */}
-            <div
-              className="rounded-xl p-16 flex flex-col items-center justify-center"
-              style={{
-                backgroundColor: 'var(--surface-primary)',
-                border: '1px solid var(--border-primary)'
-              }}
-            >
+            {contacts.length > 0 ? (
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                className="rounded-xl overflow-hidden"
                 style={{
-                  backgroundColor: 'var(--surface-secondary)'
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-primary)'
                 }}
               >
-                <Users 
-                  style={{ 
-                    width: '32px', 
-                    height: '32px',
-                    color: 'var(--text-tertiary)',
-                    opacity: 0.5
-                  }} 
-                />
+                {contacts.map((contact, idx) => (
+                  <div
+                    key={contact.id}
+                    className="px-6 py-4 flex items-center gap-4"
+                    style={{
+                      borderBottom: idx < contacts.length - 1 ? '1px solid var(--border-primary)' : 'none'
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold"
+                      style={{ backgroundColor: 'var(--accent-primary)20', color: 'var(--accent-primary)' }}
+                    >
+                      {contact.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {contact.name}
+                        </span>
+                        {contact.isPrimary && (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{ backgroundColor: 'var(--accent-primary)20', color: 'var(--accent-primary)' }}
+                          >
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      {contact.position && (
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                          {contact.position}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {contact.email && (
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{contact.email}</span>
+                      )}
+                      {contact.phone && (
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{contact.phone}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <h3 
-                className="text-base mb-2"
-                style={{ 
-                  color: 'var(--text-primary)',
-                  fontWeight: 500
-                }}
-              >
-                No contact persons found
-              </h3>
-              
-              <p 
-                className="text-sm mb-6"
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                Add contact persons to start collaborating with this client
-              </p>
-
-              <button
-                className="px-5 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2"
+            ) : (
+              <div
+                className="rounded-xl p-16 flex flex-col items-center justify-center"
                 style={{
-                  backgroundColor: 'var(--accent-primary)',
-                  color: '#ffffff',
-                  fontWeight: 500
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1';
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-primary)'
                 }}
               >
-                <Plus style={{ width: '16px', height: '16px' }} />
-                Add first contact
-              </button>
-            </div>
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                  style={{ backgroundColor: 'var(--surface-secondary)' }}
+                >
+                  <Users style={{ width: '32px', height: '32px', color: 'var(--text-tertiary)', opacity: 0.5 }} />
+                </div>
+                <h3 className="text-base mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                  No contact persons found
+                </h3>
+                <p className="text-sm mb-6" style={{ color: 'var(--text-tertiary)' }}>
+                  Add contact persons to start collaborating with this client
+                </p>
+                <button
+                  className="px-5 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2"
+                  style={{ backgroundColor: 'var(--accent-primary)', color: '#ffffff', fontWeight: 500 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                >
+                  <Plus style={{ width: '16px', height: '16px' }} />
+                  Add first contact
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -976,7 +1018,8 @@ export function ClientDetail({ client, onBack }: ClientDetailProps) {
               <div className="flex items-center justify-start pt-4">
                 <button
                   onClick={handleSaveClientInfo}
-                  className="px-6 py-3 rounded-lg text-sm transition-opacity flex items-center gap-2"
+                  disabled={updateClient.isPending}
+                  className="px-6 py-3 rounded-lg text-sm transition-opacity flex items-center gap-2 disabled:opacity-60"
                   style={{
                     backgroundColor: 'var(--accent-primary)',
                     color: '#ffffff',
@@ -990,7 +1033,7 @@ export function ClientDetail({ client, onBack }: ClientDetailProps) {
                   }}
                 >
                   <Check style={{ width: '16px', height: '16px' }} />
-                  Сохранить
+                  {updateClient.isPending ? 'Сохранение…' : 'Сохранить'}
                 </button>
               </div>
             </div>

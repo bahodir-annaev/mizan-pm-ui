@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Circle, Play, AlertCircle, CheckCircle2, Clock, Ban } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import type { TaskStatus, AcceptanceStatus } from '@/types/api';
 
 interface WorkflowOption {
   value: string;
@@ -17,17 +18,19 @@ interface WorkflowOption {
 }
 
 const workflowOptions: WorkflowOption[] = [
-  // Execution states
-  { value: 'Start', label: 'Start', icon: Play, colorVar: 'var(--status-start)', group: 'execution' },
-  { value: 'In Progress', label: 'In Progress', icon: Play, colorVar: 'var(--status-progress)', group: 'execution' },
-  { value: 'Burning', label: 'Burning', icon: AlertCircle, colorVar: 'var(--status-burning)', group: 'execution' },
-  { value: 'End', label: 'End', icon: CheckCircle2, colorVar: 'var(--status-end)', group: 'execution' },
-  { value: 'Late', label: 'Late', icon: Clock, colorVar: 'var(--status-late)', group: 'execution' },
-  
-  // Review states
-  { value: 'Pending review', label: 'Pending review', icon: Clock, colorVar: 'var(--text-tertiary)', group: 'review' },
-  { value: 'Approved', label: 'Approved', icon: CheckCircle2, colorVar: 'var(--status-start)', group: 'review' },
-  { value: 'Rejected', label: 'Rejected', icon: AlertCircle, colorVar: 'var(--status-late)', group: 'review' },
+  // Execution states — values are TaskStatus enum
+  { value: 'PLANNING'    satisfies TaskStatus, label: 'Planning',    icon: Circle,       colorVar: 'var(--text-tertiary)',    group: 'execution' },
+  { value: 'TODO'        satisfies TaskStatus, label: 'To Do',       icon: Play,         colorVar: 'var(--status-start)',     group: 'execution' },
+  { value: 'IN_PROGRESS' satisfies TaskStatus, label: 'In Progress', icon: Play,         colorVar: 'var(--status-progress)',  group: 'execution' },
+  { value: 'IN_REVIEW'   satisfies TaskStatus, label: 'In Review',   icon: AlertCircle,  colorVar: 'var(--status-burning)',   group: 'execution' },
+  { value: 'DONE'        satisfies TaskStatus, label: 'Done',        icon: CheckCircle2, colorVar: 'var(--status-end)',       group: 'execution' },
+  { value: 'CANCELLED'   satisfies TaskStatus, label: 'Cancelled',   icon: Ban,          colorVar: 'var(--status-late)',      group: 'execution' },
+
+  // Review states — values are AcceptanceStatus enum
+  { value: 'PENDING'   satisfies AcceptanceStatus, label: 'Pending review', icon: Clock,        colorVar: 'var(--text-tertiary)', group: 'review' },
+  { value: 'ACCEPTED'  satisfies AcceptanceStatus, label: 'Accepted',       icon: CheckCircle2, colorVar: 'var(--status-start)',  group: 'review' },
+  { value: 'REJECTED'  satisfies AcceptanceStatus, label: 'Rejected',       icon: AlertCircle,  colorVar: 'var(--status-late)',   group: 'review' },
+  { value: 'REVISION'  satisfies AcceptanceStatus, label: 'Needs revision', icon: Clock,        colorVar: 'var(--status-burning)',group: 'review' },
 ];
 
 interface UnifiedWorkflowCellProps {

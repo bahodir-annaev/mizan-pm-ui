@@ -1,41 +1,53 @@
 import { useState } from 'react';
-import { X, Check, ChevronDown, HelpCircle, Building2, User, MapPin, Globe, Phone, Hash, Tag } from 'lucide-react';
+import { Check, ChevronDown, HelpCircle, Building2, User, MapPin, Globe, Phone, Hash, Tag } from 'lucide-react';
+import { ModalHeader } from './ModalHeader';
+import { useUpdateClient } from '@/hooks/api/useClients';
+import type { Client } from '@/types/domain';
+import type { ClientType } from '@/types/api';
 
 interface EditClientModalProps {
-  client: {
-    id: number;
-    name: string;
-    contactPerson: string;
-    phone: string;
-    group: string;
-    labels: string[];
-    projectsCount: number;
-  };
+  client: Client;
   onClose: () => void;
-  onSave: (data: any) => void;
 }
 
-export function EditClientModal({ client, onClose, onSave }: EditClientModalProps) {
-  const [clientType, setClientType] = useState<'organization' | 'person'>('organization');
+export function EditClientModal({ client, onClose }: EditClientModalProps) {
+  const updateClient = useUpdateClient();
+
+  const typeFromDomain = (t: string): 'organization' | 'person' =>
+    t === 'Individual' ? 'person' : 'organization';
+
+  const [clientType, setClientType] = useState<'organization' | 'person'>(typeFromDomain(client.type));
   const [formData, setFormData] = useState({
     companyName: client.name,
     owner: 'MIZAN ARCHITECTURE',
-    address: 'Markaz',
-    city: 'Toshkent',
-    state: 'Штат',
-    postalCode: '100000',
-    country: 'Узбекистан',
-    phone: client.phone || '+998888882332',
-    website: '',
+    address: client.address ?? '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: '',
+    phone: client.phone ?? '',
+    website: client.website ?? '',
     vatNumber: '',
     gstNumber: '',
-    clientGroups: client.group,
-    labels: client.labels.join(', ')
+    clientGroups: '',
+    labels: ''
   });
 
   const handleSave = () => {
-    onSave(formData);
-    onClose();
+    const clientTypeEnum: ClientType = clientType === 'person' ? 'INDIVIDUAL' : 'COMPANY';
+    updateClient.mutate(
+      {
+        id: client.id,
+        dto: {
+          name: formData.companyName,
+          clientType: clientTypeEnum,
+          phone: formData.phone || undefined,
+          address: formData.address || undefined,
+          website: formData.website || undefined,
+        },
+      },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -52,44 +64,19 @@ export function EditClientModal({ client, onClose, onSave }: EditClientModalProp
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div 
-          className="flex items-center justify-between px-8 py-5 border-b"
-          style={{ borderColor: 'var(--border-primary)' }}
-        >
-          <div>
-            <h2 
-              className="text-xl mb-1"
-              style={{ 
-                color: 'var(--text-primary)',
-                fontWeight: 600
-              }}
-            >
-              Редактировать клиента
-            </h2>
-            <p 
-              className="text-sm"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              Обновите информацию о клиенте
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-tertiary)' }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-tertiary)';
-            }}
-          >
-            <X style={{ width: '20px', height: '20px' }} />
-          </button>
-        </div>
+        <ModalHeader
+          title={
+            <div>
+              <div className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Редактировать клиента
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                Обновите информацию о клиенте
+              </p>
+            </div>
+          }
+          onClose={onClose}
+        />
 
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
@@ -799,7 +786,8 @@ export function EditClientModal({ client, onClose, onSave }: EditClientModalProp
 
           <button
             onClick={handleSave}
-            className="px-6 py-3 rounded-lg text-sm transition-opacity flex items-center gap-2"
+            disabled={updateClient.isPending}
+            className="px-6 py-3 rounded-lg text-sm transition-opacity flex items-center gap-2 disabled:opacity-60"
             style={{
               backgroundColor: 'var(--accent-primary)',
               color: '#ffffff',
@@ -813,7 +801,7 @@ export function EditClientModal({ client, onClose, onSave }: EditClientModalProp
             }}
           >
             <Check style={{ width: '16px', height: '16px' }} />
-            Сохранить
+            {updateClient.isPending ? 'Сохранение…' : 'Сохранить'}
           </button>
         </div>
       </div>

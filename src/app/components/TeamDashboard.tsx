@@ -4,9 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Progress } from './ui/progress';
 import { EmployeeProfile, type Employee } from './EmployeeProfile';
 import { EmployeeProjectMatrix } from './EmployeeProjectMatrix';
+import { MOCK_EMPLOYEES } from '@/mocks/employees';
 
-// Mock employee data
-const initialEmployees: Employee[] = [
+// Data sourced from src/mocks/employees.ts (extracted for reuse and API wiring)
+const initialEmployees: Employee[] = MOCK_EMPLOYEES;
+
+// Legacy inline data left below for reference only — superseded by MOCK_EMPLOYEES above
+const _legacyEmployees: Employee[] = [
   {
     id: 'EMP-001',
     name: 'Sarah Chen',

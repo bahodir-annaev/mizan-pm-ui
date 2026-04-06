@@ -9,31 +9,37 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Calendar, Plus } from 'lucide-react';
+import { useProjectTasks, useUpdateTask } from '@/hooks/api/useTasks';
+import type { Task } from '@/types/domain';
+import type { TaskStatus } from '@/types/api';
 
-// Status configuration matching Nizam design system
-const statusConfig: Record<string, { 
-  label: string; 
-  color: string; 
-  dotColor: string; 
+// Keys match the display strings produced by the task mapper (STATUS_DISPLAY)
+const statusConfig: Record<string, {
+  label: string;
+  color: string;
+  dotColor: string;
   bgColor: string;
   columnBg: string;
   columnBgHover: string;
+  apiKey: TaskStatus;
 }> = {
-  'Not Started': {
-    label: 'Backlog',
+  'Planning': {
+    label: 'Planning',
     color: '#64748b',
     dotColor: '#cbd5e1',
     bgColor: 'rgba(100, 116, 139, 0.1)',
     columnBg: '#F9FAFB',
-    columnBgHover: '#F3F4F6'
+    columnBgHover: '#F3F4F6',
+    apiKey: 'PLANNING',
   },
-  'Started': {
+  'To Do': {
     label: 'To Do',
     color: '#3b82f6',
     dotColor: '#3b82f6',
     bgColor: 'rgba(59, 130, 246, 0.1)',
     columnBg: '#F9FAFB',
-    columnBgHover: '#F3F4F6'
+    columnBgHover: '#F3F4F6',
+    apiKey: 'TODO',
   },
   'In Progress': {
     label: 'In Progress',
@@ -41,32 +47,36 @@ const statusConfig: Record<string, {
     dotColor: '#6366f1',
     bgColor: 'rgba(99, 102, 241, 0.1)',
     columnBg: '#F9FAFB',
-    columnBgHover: '#F3F4F6'
+    columnBgHover: '#F3F4F6',
+    apiKey: 'IN_PROGRESS',
   },
-  'Pending review': {
-    label: 'Review',
+  'In Review': {
+    label: 'In Review',
     color: '#f59e0b',
     dotColor: '#f59e0b',
     bgColor: 'rgba(245, 158, 11, 0.1)',
     columnBg: '#F9FAFB',
-    columnBgHover: '#F3F4F6'
+    columnBgHover: '#F3F4F6',
+    apiKey: 'IN_REVIEW',
   },
-  'Completed': {
+  'Done': {
     label: 'Done',
     color: '#10b981',
     dotColor: '#10b981',
     bgColor: 'rgba(16, 185, 129, 0.1)',
     columnBg: '#F9FAFB',
-    columnBgHover: '#F3F4F6'
+    columnBgHover: '#F3F4F6',
+    apiKey: 'DONE',
   },
-  'Late': {
-    label: 'Late',
+  'Cancelled': {
+    label: 'Cancelled',
     color: '#ef4444',
     dotColor: '#ef4444',
     bgColor: 'rgba(239, 68, 68, 0.1)',
     columnBg: '#F9FAFB',
-    columnBgHover: '#F3F4F6'
-  }
+    columnBgHover: '#F3F4F6',
+    apiKey: 'CANCELLED',
+  },
 };
 
 // Priority configuration - Nizam colors
@@ -111,7 +121,8 @@ interface TaskCardData {
 }
 
 interface BoardViewProps {
-  tasks: TaskCardData[];
+  projectId?: string;
+  tasks?: TaskCardData[];
   onTaskMove?: (taskId: string, newStatus: string) => void;
   onTaskClick?: (taskId: string) => void;
 }
@@ -135,11 +146,12 @@ function TaskCard({ task, onMove, onClick, isAnimating, isShifting, shiftIndex =
     }),
   }));
 
-  const priorityStyle = priorityConfig[task.priority];
-  const statusStyle = statusConfig[task.status];
+  const priorityStyle = priorityConfig[task.priority] ?? priorityConfig['Medium'];
+  const statusStyle = statusConfig[task.status] ?? statusConfig['Not Started'];
   
   // Calculate if deadline is approaching (within 7 days)
   const isDeadlineNear = () => {
+    if (!task.dateEnd) return false;
     const today = new Date();
     const dateStr = task.dateEnd.split(' ');
     if (dateStr.length < 3) return false;
@@ -445,18 +457,19 @@ function TaskCard({ task, onMove, onClick, isAnimating, isShifting, shiftIndex =
         {/* Assignee & Participants Avatars */}
         <div className="flex items-center -space-x-2 flex-1 overflow-x-auto">
           {/* Assignee Avatar - Always First */}
+          {task.assignee && (
           <div className="relative flex-shrink-0 group/avatar">
-            <Avatar 
+            <Avatar
               className="w-7 h-7 border-2 ring-1"
-              style={{ 
+              style={{
                 borderColor: 'var(--card)',
                 ringColor: 'rgba(59, 130, 246, 0.2)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}
             >
-              <AvatarFallback 
+              <AvatarFallback
                 className={task.assignee.color}
-                style={{ 
+                style={{
                   fontSize: '10px',
                   fontWeight: '600'
                 }}
@@ -479,6 +492,7 @@ function TaskCard({ task, onMove, onClick, isAnimating, isShifting, shiftIndex =
               {task.assignee.name} (Lead)
             </div>
           </div>
+          )}
           
           {/* All Participants - Show Every Single One */}
           {allParticipants.map((participant, index) => (
@@ -528,7 +542,7 @@ function TaskCard({ task, onMove, onClick, isAnimating, isShifting, shiftIndex =
               backgroundColor: 'var(--muted)'
             }}
           >
-            {1 + allParticipants.length}
+            {(task.assignee ? 1 : 0) + allParticipants.length}
           </span>
         </div>
       </div>
@@ -752,29 +766,70 @@ function BoardColumn({ status, tasks, onTaskMove, onTaskClick, onAddTask, animat
   );
 }
 
+function taskToCardData(task: Task): TaskCardData {
+  return {
+    id: task.id,
+    title: task.title,
+    assignee: task.assignee
+      ? { name: task.assignee.name, initials: task.assignee.initials, color: task.assignee.color }
+      : undefined as any,
+    participants: (task.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
+    priority: task.priority ?? 'Medium',
+    dateEnd: task.dueDate ?? '',
+    dateStart: task.startDate,
+    status: task.status ?? 'To Do',
+    typeOfWork: task.workType,
+    progress: task.progress,
+  };
+}
+
 // Main Board View Component
-export function BoardView({ tasks, onTaskMove, onTaskClick }: BoardViewProps) {
-  const [boardTasks, setBoardTasks] = useState<TaskCardData[]>(tasks);
+export function BoardView({ projectId, tasks: propTasks, onTaskMove, onTaskClick }: BoardViewProps) {
+  const { data: apiTasks = [], isLoading } = useProjectTasks(projectId);
+  const updateTask = useUpdateTask();
+
+  const sourceTasks: TaskCardData[] = projectId
+    ? apiTasks.map(taskToCardData)
+    : (propTasks ?? []);
+
+  const [boardTasks, setBoardTasks] = useState<TaskCardData[]>(sourceTasks);
   const [animatingTaskId, setAnimatingTaskId] = useState<string | null>(null);
+
+  // Sync when API data changes
+  useEffect(() => {
+    setBoardTasks(sourceTasks);
+  }, [apiTasks, propTasks]);
+
+  if (projectId && isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F6F7F9' }}>
+        <span className="text-sm" style={{ color: '#9ca3af' }}>Loading board...</span>
+      </div>
+    );
+  }
 
   const handleTaskMove = (taskId: string, newStatus: string) => {
     const oldStatus = boardTasks.find(t => t.id === taskId)?.status;
-    
-    // Update task status
+
     setBoardTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     );
-    
-    // Trigger entrance animation if status changed
+
     if (oldStatus !== newStatus) {
       setAnimatingTaskId(taskId);
-      setTimeout(() => {
-        setAnimatingTaskId(null);
-      }, 220);
+      setTimeout(() => setAnimatingTaskId(null), 220);
+
+      // Persist to API when using real data
+      if (projectId) {
+        const apiStatus = statusConfig[newStatus]?.apiKey;
+        if (apiStatus) {
+          updateTask.mutate({ id: taskId, dto: { status: apiStatus } });
+        }
+      }
     }
-    
+
     onTaskMove?.(taskId, newStatus);
   };
 
