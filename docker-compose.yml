@@ -4,7 +4,7 @@ services:
     container_name: archplan-ui
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     networks:
       - mizan-pm_default
 
