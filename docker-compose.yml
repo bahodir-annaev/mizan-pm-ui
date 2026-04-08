@@ -1,0 +1,13 @@
+services:
+  archplan-ui:
+    build: .
+    container_name: archplan-ui
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - mizan-pm_default
+
+networks:
+  mizan-pm_default:
+    external: true
