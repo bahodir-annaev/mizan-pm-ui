@@ -1,4 +1,5 @@
 import { Globe, Check, User, Key, Settings, LogOut } from 'lucide-react';
+import { ActiveTimerWidget } from './ActiveTimerWidget';
 import { UserAvatar } from './UserAvatar';
 import {
   DropdownMenu,
@@ -60,6 +61,9 @@ export function Header({ currentTheme, onThemeChange, onNavigateToSettings }: He
       <div className="flex items-center gap-4 flex-1">
         <GlobalSearch />
       </div>
+
+      {/* Active Timer */}
+      <ActiveTimerWidget />
 
       {/* Utility Icons */}
       <div className="flex items-center gap-2">
@@ -173,6 +177,7 @@ export function Header({ currentTheme, onThemeChange, onNavigateToSettings }: He
             <DropdownMenuItem
               className="flex items-center gap-3 py-2.5 cursor-pointer"
               style={{ color: 'var(--text-primary)' }}
+              onClick={() => navigate('/settings', { state: { category: 'security' } })}
             >
               <Key className="w-4 h-4" />
               <span>{t('header.changePassword')}</span>

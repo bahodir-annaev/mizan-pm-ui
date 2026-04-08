@@ -1,211 +1,45 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Users, UserCheck, Clock, CheckCircle2, Activity, TrendingUp, Briefcase } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Progress } from '../components/ui/progress';
 import { EmployeeProfile, type Employee } from '../components/EmployeeProfile';
 import { EmployeeProjectMatrix } from '../components/EmployeeProjectMatrix';
-import { MOCK_EMPLOYEES } from '@/mocks/employees';
+import { useUsers } from '@/hooks/api/useUsers';
+import { useTeamPerformance, useAnalyticsOverview } from '@/hooks/api/useAnalytics';
+import type { TeamMember } from '@/types/domain';
 
-// Data sourced from src/mocks/employees.ts (extracted for reuse and API wiring)
-const initialEmployees: Employee[] = MOCK_EMPLOYEES;
+type PerfMember = { name: string; tasksCompleted: number; hoursLogged: number; performance: number };
 
-// Legacy inline data left below for reference only — superseded by MOCK_EMPLOYEES above
-const _legacyEmployees: Employee[] = [
-  {
-    id: 'EMP-001',
-    name: 'Sarah Chen',
-    role: 'Senior Architect',
-    status: 'working',
-    currentProject: 'Bobur residence interior',
-    tasksCompleted: 4,
-    tasksTotal: 6,
-    hoursToday: 6.5,
-    lastActive: '2 min ago',
-    email: 'sarah.chen@company.com',
-    phone: '+1 (555) 123-4567',
-    location: 'New York, USA',
-    joinDate: 'Jan 2021',
-    department: 'Architecture',
-    totalProjects: 32,
-    weeklyHours: 42.5,
-    monthlyTasksCompleted: 48,
-    performance: 96,
-    skills: ['AutoCAD', 'Revit', '3D Modeling', 'Interior Design', 'Project Management'],
-    recentProjects: [
-      { name: 'Bobur residence interior', role: 'Lead Architect', completion: 75 },
-      { name: 'Corporate Office Redesign', role: 'Senior Architect', completion: 100 },
-      { name: 'Luxury Villa Project', role: 'Lead Designer', completion: 90 }
-    ]
-  },
-  {
-    id: 'EMP-002',
-    name: 'Mike Johnson',
-    role: 'Interior Designer',
-    status: 'working',
-    currentProject: 'Modern Spaces LLC',
-    tasksCompleted: 3,
-    tasksTotal: 5,
-    hoursToday: 5.2,
-    lastActive: '5 min ago',
-    email: 'mike.j@company.com',
-    phone: '+1 (555) 234-5678',
-    location: 'Los Angeles, USA',
-    joinDate: 'Mar 2022',
-    department: 'Interior Design',
-    totalProjects: 18,
-    weeklyHours: 38.0,
-    performance: 92,
-    skills: ['SketchUp', 'Rendering', 'Color Theory', 'Space Planning'],
-    recentProjects: [
-      { name: 'Modern Spaces LLC', role: 'Lead Designer', completion: 65 },
-      { name: 'Boutique Hotel Interior', role: 'Interior Designer', completion: 100 }
-    ]
-  },
-  {
-    id: 'EMP-003',
-    name: 'Emma Davis',
-    role: 'Project Manager',
-    status: 'idle',
+function mapToEmployee(member: TeamMember, perf?: PerfMember): Employee {
+  const statusMap: Record<string, Employee['status']> = {
+    ACTIVE: 'working',
+    ON_LEAVE: 'idle',
+    INACTIVE: 'offline',
+    TERMINATED: 'offline',
+  };
+  const empStatus = statusMap[member.status] ?? 'idle';
+  const tasksCompleted = perf?.tasksCompleted ?? 0;
+  const hoursLogged = perf?.hoursLogged ?? 0;
+  return {
+    id: member.id,
+    name: member.name,
+    role: member.role,
+    status: empStatus,
     currentProject: null,
-    tasksCompleted: 2,
-    tasksTotal: 3,
-    hoursToday: 4.0,
-    lastActive: '45 min ago',
-    email: 'emma.davis@company.com',
-    phone: '+1 (555) 345-6789',
-    location: 'Chicago, USA',
-    joinDate: 'Jun 2020',
-    department: 'Management',
-    totalProjects: 45,
-    weeklyHours: 40.0,
-    performance: 94,
-    skills: ['Project Management', 'Agile', 'Stakeholder Management', 'Budgeting'],
-    recentProjects: [
-      { name: 'Tech Campus Development', role: 'Project Manager', completion: 100 },
-      { name: 'Residential Complex', role: 'PM', completion: 85 }
-    ]
-  },
-  {
-    id: 'EMP-004',
-    name: 'Alex Martinez',
-    role: '3D Visualizer',
-    status: 'working',
-    currentProject: 'Heritage Builders',
-    tasksCompleted: 5,
-    tasksTotal: 5,
-    hoursToday: 7.0,
-    lastActive: '1 min ago',
-    email: 'alex.m@company.com',
-    phone: '+1 (555) 456-7890',
-    location: 'Miami, USA',
-    joinDate: 'Sep 2021',
-    department: 'Visualization',
-    totalProjects: 28,
-    weeklyHours: 45.0,
-    performance: 98,
-    skills: ['3ds Max', 'V-Ray', 'Photoshop', 'After Effects', 'Unreal Engine'],
-    recentProjects: [
-      { name: 'Heritage Builders', role: '3D Visualizer', completion: 100 },
-      { name: 'Luxury Penthouse Render', role: 'Lead Visualizer', completion: 100 }
-    ]
-  },
-  {
-    id: 'EMP-005',
-    name: 'Lisa Wang',
-    role: 'Junior Designer',
-    status: 'offline',
-    currentProject: null,
-    tasksCompleted: 0,
-    tasksTotal: 4,
-    hoursToday: 0,
-    lastActive: '3 hours ago',
-    email: 'lisa.wang@company.com',
-    phone: '+1 (555) 567-8901',
-    location: 'San Francisco, USA',
-    joinDate: 'Feb 2023',
-    department: 'Design',
-    totalProjects: 8,
-    weeklyHours: 35.0,
-    performance: 85,
-    skills: ['AutoCAD', 'SketchUp', 'Photoshop', 'InDesign'],
-    recentProjects: [
-      { name: 'Small Office Fitout', role: 'Junior Designer', completion: 100 },
-      { name: 'Cafe Interior', role: 'Assistant Designer', completion: 90 }
-    ]
-  },
-  {
-    id: 'EMP-006',
-    name: 'David Kim',
-    role: 'Technical Lead',
-    status: 'working',
-    currentProject: 'Prestige Homes',
-    tasksCompleted: 6,
-    tasksTotal: 8,
-    hoursToday: 6.8,
-    lastActive: 'Just now',
-    email: 'david.kim@company.com',
-    phone: '+1 (555) 678-9012',
-    location: 'Seattle, USA',
-    joinDate: 'May 2019',
-    department: 'Technical',
-    totalProjects: 52,
-    weeklyHours: 43.0,
-    performance: 97,
-    skills: ['BIM', 'Revit', 'Navisworks', 'Construction Documentation', 'Coordination'],
-    recentProjects: [
-      { name: 'Prestige Homes', role: 'Technical Lead', completion: 78 },
-      { name: 'High-rise Development', role: 'BIM Manager', completion: 100 }
-    ]
-  },
-  {
-    id: 'EMP-007',
-    name: 'Sofia Rodriguez',
-    role: 'CAD Specialist',
-    status: 'working',
-    currentProject: 'Skyline Architects',
-    tasksCompleted: 4,
-    tasksTotal: 7,
-    hoursToday: 5.5,
-    lastActive: '10 min ago',
-    email: 'sofia.r@company.com',
-    phone: '+1 (555) 789-0123',
-    location: 'Austin, USA',
-    joinDate: 'Nov 2021',
-    department: 'CAD',
-    totalProjects: 24,
-    weeklyHours: 39.0,
-    performance: 91,
-    skills: ['AutoCAD', 'MicroStation', 'Technical Drawing', 'Construction Details'],
-    recentProjects: [
-      { name: 'Skyline Architects', role: 'CAD Specialist', completion: 60 },
-      { name: 'Mixed-use Development', role: 'CAD Lead', completion: 100 }
-    ]
-  },
-  {
-    id: 'EMP-008',
-    name: 'James Wilson',
-    role: 'Interior Designer',
-    status: 'idle',
-    currentProject: null,
-    tasksCompleted: 1,
-    tasksTotal: 4,
-    hoursToday: 3.2,
-    lastActive: '1 hour ago',
-    email: 'james.w@company.com',
-    phone: '+1 (555) 890-1234',
-    location: 'Boston, USA',
-    joinDate: 'Jul 2022',
-    department: 'Interior Design',
-    totalProjects: 15,
-    weeklyHours: 37.5,
-    performance: 88,
-    skills: ['Space Planning', 'Material Selection', 'Lighting Design', 'FF&E'],
-    recentProjects: [
-      { name: 'Restaurant Interior', role: 'Interior Designer', completion: 100 },
-      { name: 'Retail Store Design', role: 'Designer', completion: 95 }
-    ]
-  }
-];
+    tasksCompleted,
+    tasksTotal: Math.ceil(tasksCompleted * 1.25) || 1,
+    hoursToday: parseFloat((hoursLogged / 5).toFixed(1)),
+    lastActive: empStatus === 'working' ? 'Recently active' : empStatus === 'idle' ? 'On leave' : 'Inactive',
+    avatar: member.avatarUrl,
+    email: member.email,
+    phone: member.phone,
+    department: member.position ?? member.role,
+    performance: perf?.performance,
+    weeklyHours: hoursLogged,
+    monthlyTasksCompleted: tasksCompleted,
+    recentProjects: [],
+  };
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -236,33 +70,53 @@ const getStatusLabel = (status: string) => {
 export function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'working' | 'idle' | 'offline'>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, Employee>>({});
+
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: teamPerf } = useTeamPerformance();
+  const { data: overview } = useAnalyticsOverview();
+
+  const employees = useMemo<Employee[]>(() => {
+    const perfByName = new Map((teamPerf?.members ?? []).map((m) => [m.name, m]));
+    return users.map((member) => {
+      const override = localOverrides[member.id];
+      if (override) return override;
+      return mapToEmployee(member, perfByName.get(member.name));
+    });
+  }, [users, teamPerf, localOverrides]);
 
   const workingCount = employees.filter(e => e.status === 'working').length;
   const idleCount = employees.filter(e => e.status === 'idle').length;
   const offlineCount = employees.filter(e => e.status === 'offline').length;
   const totalHoursToday = employees.reduce((sum, e) => sum + e.hoursToday, 0);
-  const totalTasksCompleted = employees.reduce((sum, e) => sum + e.tasksCompleted, 0);
-  const totalTasks = employees.reduce((sum, e) => sum + e.tasksTotal, 0);
+  const totalTasksCompleted = overview?.completedTasks ?? employees.reduce((sum, e) => sum + e.tasksCompleted, 0);
+  const totalTasks = overview?.totalTasks ?? employees.reduce((sum, e) => sum + e.tasksTotal, 0);
   const completionRate = totalTasks > 0 ? Math.round((totalTasksCompleted / totalTasks) * 100) : 0;
 
-  const filteredEmployees = filterStatus === 'all' 
-    ? employees 
+  const filteredEmployees = filterStatus === 'all'
+    ? employees
     : employees.filter(e => e.status === filterStatus);
 
   const handleUpdateEmployee = (updatedEmployee: Employee) => {
-    setEmployees(prev => prev.map(emp => emp.id === updatedEmployee.id ? updatedEmployee : emp));
+    setLocalOverrides(prev => ({ ...prev, [updatedEmployee.id]: updatedEmployee }));
     setSelectedEmployee(updatedEmployee);
   };
 
-  // Show employee profile if selected
   if (selectedEmployee) {
     return (
-      <EmployeeProfile 
+      <EmployeeProfile
         employee={selectedEmployee}
         onBack={() => setSelectedEmployee(null)}
         onUpdateEmployee={handleUpdateEmployee}
       />
+    );
+  }
+
+  if (usersLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading team data…</div>
+      </div>
     );
   }
 
@@ -307,7 +161,7 @@ export function DashboardPage() {
               <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Total</span>
             </div>
             <div className="text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-              {employees.length}
+              {overview?.teamSize ?? employees.length}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               Team Members
@@ -402,7 +256,7 @@ export function DashboardPage() {
                 color: filterStatus === 'all' ? '#ffffff' : 'var(--text-secondary)'
               }}
             >
-              All ({employees.length})
+              All ({overview?.teamSize ?? employees.length})
             </button>
             <button
               onClick={() => setFilterStatus('working')}
@@ -670,7 +524,7 @@ export function DashboardPage() {
               <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Active Projects</span>
             </div>
             <div className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {new Set(employees.filter(e => e.currentProject).map(e => e.currentProject)).size}
+              {overview?.activeProjects ?? new Set(employees.filter(e => e.currentProject).map(e => e.currentProject)).size}
             </div>
           </div>
         </div>

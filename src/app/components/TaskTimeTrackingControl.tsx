@@ -16,6 +16,7 @@ function ElapsedTimer({ startTime }: { startTime: string }) {
   const [elapsed, setElapsed] = useState(getElapsed);
 
   useEffect(() => {
+    setElapsed(getElapsed()); // reset immediately when startTime changes
     const interval = setInterval(() => setElapsed(getElapsed()), 1000);
     return () => clearInterval(interval);
   }, [startTime]);
@@ -144,7 +145,7 @@ export function TaskTimeTrackingControl({ taskId }: TaskTimeTrackingControlProps
       </button>
 
       {isRunning && activeEntry && (
-        <ElapsedTimer startTime={activeEntry.startTime} />
+        <ElapsedTimer key={activeEntry.id} startTime={activeEntry.startTime} />
       )}
     </div>
   );

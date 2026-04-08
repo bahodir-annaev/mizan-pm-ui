@@ -20,7 +20,7 @@ interface UserAvatarProps {
   name: string;
   src?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
-  /** Background color override (hex or CSS variable) */
+  /** Tailwind bg-* class e.g. "bg-blue-500" */
   color?: string;
   className?: string;
 }
@@ -38,12 +38,8 @@ export function UserAvatar({
     <Avatar className={cn(sizeClass, className)}>
       {src && <AvatarImage src={src} alt={name} />}
       <AvatarFallback
-        className={cn('font-semibold', sizeClass)}
-        style={
-          color
-            ? { backgroundColor: `${color}20`, color }
-            : { backgroundColor: 'var(--surface-tertiary)', color: 'var(--text-secondary)' }
-        }
+        className={cn('font-semibold text-white', sizeClass, color)}
+        style={color ? undefined : { backgroundColor: 'var(--surface-tertiary)', color: 'var(--text-secondary)' }}
       >
         {getInitials(name)}
       </AvatarFallback>

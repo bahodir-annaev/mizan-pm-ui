@@ -45,7 +45,9 @@ export interface Task {
   progress?: number;
   code?: string;
   projectId: string;
-  parentId?: string;
+  parentId?: string | null;
+  depth?: number; // 0 = root task
+  position?: number; // sort order among siblings
   assignee?: TaskAssignee;
   participants?: TaskAssignee[];
   subtasks?: Task[];
@@ -58,6 +60,10 @@ export interface Task {
   acceptance?: string; // alias for acceptanceStatus
   volume?: string;
   unit?: string;
+}
+
+export interface TreeTask extends Task {
+  children: TreeTask[];
 }
 
 export interface TaskAssignee {
@@ -75,6 +81,7 @@ export interface TeamMember {
   lastName: string;
   email: string;
   role: string; // position or team role
+  orgRole: 'owner' | 'admin' | 'manager' | 'member' | 'viewer'; // org-level role
   position?: string;
   phone?: string;
   avatarUrl?: string;

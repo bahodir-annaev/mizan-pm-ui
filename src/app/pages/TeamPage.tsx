@@ -1,64 +1,51 @@
 import { useState } from 'react';
-import { X, UserPlus, UserCheck } from 'lucide-react';
+import { X, UserPlus } from 'lucide-react';
 import { SearchInput } from '../components/SearchInput';
 import { UserAvatar } from '../components/UserAvatar';
 import { AddMemberModal } from '../components/AddMemberModal';
-import { useTranslation } from '../contexts/TranslationContext';
-import { useUsers, useAssignUserToOrg } from '@/hooks/api/useUsers';
-import { useAuth } from '../auth/AuthContext';
+import { useUsers, useUpdateUser, useDeleteUser } from '@/hooks/api/useUsers';
 
-// interface TeamMember {
-//   id: string;
-//   name: string;
-//   position: string;
-//   email: string;
-//   phone: string;
-//   avatar?: string;
-// }
+type OrgRole = 'owner' | 'admin' | 'manager' | 'member' | 'viewer';
+
+const ORG_ROLES: OrgRole[] = ['owner', 'admin', 'manager', 'member', 'viewer'];
+
+const ROLE_STYLES: Record<OrgRole, { bg: string; color: string }> = {
+  owner:   { bg: 'rgba(99,102,241,0.15)',  color: 'var(--accent-primary)' },
+  admin:   { bg: 'rgba(168,85,247,0.15)',  color: '#a855f7' },
+  manager: { bg: 'rgba(20,184,166,0.15)',  color: '#14b8a6' },
+  member:  { bg: 'var(--surface-secondary)', color: 'var(--text-secondary)' },
+  viewer:  { bg: 'rgba(234,179,8,0.15)',   color: '#ca8a04' },
+};
 
 export function TeamPage() {
-  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-
-  const { data: teamMembers = [], isLoading, isError } = useUsers();
-  const assignToOrg = useAssignUserToOrg();
-  const { user: currentUser } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // const teamMembers: TeamMember[] = [
-  //   { id: '1', name: 'ABDULLA ABDULLAYEV', position: 'Дизайнер интерфейса', email: 'abdulla@gmail.com', phone: '+998936343555' },
-  //   { id: '2', name: 'ADIZ SAIDOV', position: 'Grafik Dizayner', email: 'adizdesign017@gmail.com', phone: '+998995140117' },
-  //   { id: '3', name: 'AZIZ MUJAMEDOV', position: 'Дизайнер интерфейса', email: 'Azizaall@gmail.com', phone: '+998890511188' },
-  //   { id: '4', name: 'AZIZ OMINOV', position: 'Главный архитектор', email: 'avi3@gmail.com', phone: '+998946831191' },
-  //   { id: '5', name: 'BEHJOD NIYAZOV', position: 'Менеджер', email: 'behzod@gmail.com', phone: '+998886668888' },
-  //   { id: '6', name: 'DAVRON DJURAYEV', position: '3D-дь Visualization', email: 'davron.djurayev@gmail.com', phone: '+998974585093' },
-  //   { id: '7', name: 'IBRSIM ISLOMOV', position: 'Архитектор', email: 'ibrsim@gmail.com', phone: '+998997923007' },
-  //   { id: '8', name: 'ISKANDAR XUDOYEERDIYEV', position: 'Архитектор', email: 'iskandar@gmail.com', phone: '+998901234106' },
-  //   { id: '9', name: 'ISLOM DJURAYEV', position: 'Визуализатор', email: 'islom.djurayev02@gmail.com', phone: '+998881440777' },
-  //   { id: '10', name: 'JAHONGIR IROMOV', position: 'Директор', email: 'jahongir@gmail.com', phone: '+998797409607' },
-  //   { id: '11', name: 'MIZAN ARCHITECTURE', position: 'info', email: 'info@mizanarchitect.uz', phone: '' },
-  //   { id: '12', name: 'OLCHINNBEK OLIMOV', position: 'Interior Designer', email: 'olchinkek@gmail.com', phone: '+998799548865' },
-  //   { id: '13', name: 'RAMZIDDIN MURITDINOV', position: 'Визуализатор', email: 'ramziddin@gmail.com', phone: '+998890424511' },
-  //   { id: '14', name: 'Sanjar 2.5', position: 'Test', email: 'abdullayew@ya.ru', phone: '' },
-  //   { id: '15', name: 'Sanjar Abdulganiev', position: 'Admin', email: 's.abdulganiev@gmail.com', phone: '+998888868098' },
-  //   { id: '16', name: 'SARDOR XAKIMOV', position: 'Фэм', email: 'sardoruka5977@gmail.com', phone: '+998944322797' },
-  // ];
+  const { data: teamMembers = [], isLoading, isError, refetch } = useUsers();
+  const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
 
   const filteredMembers = teamMembers.filter(member =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (member.position ?? member.role ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+    (member.position ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  function handleRoleChange(id: string, role: OrgRole) {
+    updateUser.mutate({ id, dto: { roles: [role] } });
+  }
+
+  function handleDelete(id: string, name: string) {
+    if (!window.confirm(`Remove ${name} from the team?`)) return;
+    deleteUser.mutate(id);
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
-      <div 
+      <div
         className="border-b px-8 py-6"
-        style={{ 
-          backgroundColor: 'var(--surface-primary)',
-          borderColor: 'var(--border-primary)'
-        }}
+        style={{ backgroundColor: 'var(--surface-primary)', borderColor: 'var(--border-primary)' }}
       >
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -72,23 +59,13 @@ export function TeamPage() {
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors"
-            style={{
-              backgroundColor: 'var(--accent-primary)',
-              color: '#ffffff',
-              fontWeight: 500
-            }}
+            style={{ backgroundColor: 'var(--accent-primary)', color: '#ffffff', fontWeight: 500 }}
           >
             <UserPlus style={{ width: '16px', height: '16px' }} />
             Add Member
           </button>
         </div>
-
-        {/* Search */}
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search team members..."
-        />
+        <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search team members..." />
       </div>
 
       {/* Table */}
@@ -98,144 +75,96 @@ export function TeamPage() {
             <p className="text-sm">Loading team members...</p>
           </div>
         ) : isError ? (
-          <div className="flex items-center justify-center py-16" style={{ color: '#EF4444' }}>
-            <p className="text-sm">Failed to load team members.</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <p className="text-sm" style={{ color: '#EF4444' }}>Failed to load team members.</p>
+            <button
+              onClick={() => refetch()}
+              className="text-sm px-3 py-1.5 rounded-lg"
+              style={{ backgroundColor: 'var(--surface-secondary)', color: 'var(--text-secondary)' }}
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <table className="w-full">
-            <thead
-              className="sticky top-0 z-10"
-              style={{ backgroundColor: 'var(--surface-secondary)' }}
-            >
+            <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--surface-secondary)' }}>
               <tr>
-                <th
-                  className="px-6 py-3 text-left text-xs uppercase tracking-wider"
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    fontWeight: 600,
-                    borderBottom: '1px solid var(--border-primary)'
-                  }}
-                >
-                  Name
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs uppercase tracking-wider"
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    fontWeight: 600,
-                    borderBottom: '1px solid var(--border-primary)'
-                  }}
-                >
-                  Position
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs uppercase tracking-wider"
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    fontWeight: 600,
-                    borderBottom: '1px solid var(--border-primary)'
-                  }}
-                >
-                  Email
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs uppercase tracking-wider"
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    fontWeight: 600,
-                    borderBottom: '1px solid var(--border-primary)'
-                  }}
-                >
-                  Phone
-                </th>
-                <th
-                  className="px-6 py-3 text-right text-xs uppercase tracking-wider"
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    fontWeight: 600,
-                    borderBottom: '1px solid var(--border-primary)'
-                  }}
-                >
-                  Actions
-                </th>
+                {['Name', 'Position', 'Role', 'Email', 'Phone', 'Actions'].map((col) => (
+                  <th
+                    key={col}
+                    className={`px-6 py-3 text-xs uppercase tracking-wider ${col === 'Actions' ? 'text-right' : 'text-left'}`}
+                    style={{ color: 'var(--text-tertiary)', fontWeight: 600, borderBottom: '1px solid var(--border-primary)' }}
+                  >
+                    {col}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filteredMembers.map((member, index) => (
-                <tr
-                  key={member.id}
-                  className="transition-colors"
-                  style={{
-                    borderBottom: index !== filteredMembers.length - 1 ? '1px solid var(--border-primary)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--surface-secondary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        name={member.name}
-                        color={member.color}
-                        size="md"
-                      />
-                      <span
-                        className="text-sm"
-                        style={{
-                          color: 'var(--text-primary)',
-                          fontWeight: 500
-                        }}
-                      >
-                        {member.name}
+              {filteredMembers.map((member, index) => {
+                const orgRole = (member.orgRole ?? 'member') as OrgRole;
+                const roleStyle = ROLE_STYLES[orgRole] ?? ROLE_STYLES.member;
+
+                return (
+                  <tr
+                    key={member.id}
+                    className="transition-colors"
+                    style={{ borderBottom: index !== filteredMembers.length - 1 ? '1px solid var(--border-primary)' : 'none' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--surface-secondary)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    {/* Name */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar name={member.name} color={member.color} size="md" />
+                        <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                          {member.name}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Position */}
+                    <td className="px-6 py-4">
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {member.position || '—'}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className="text-sm"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {member.position ?? member.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className="text-sm"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {member.email}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className="text-sm"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {member.phone || '—'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {!member.orgId && currentUser?.orgId && (
-                        <button
-                          onClick={() => assignToOrg.mutate({ userId: member.id, orgId: currentUser.orgId! })}
-                          disabled={assignToOrg.isPending}
-                          title="Add to organization"
-                          className="p-2 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 text-xs font-medium disabled:opacity-50"
-                          style={{
-                            backgroundColor: 'var(--accent-primary)',
-                            color: '#ffffff',
-                          }}
-                        >
-                          <UserCheck style={{ width: '14px', height: '14px' }} />
-                          Add to org
-                        </button>
-                      )}
+                    </td>
+
+                    {/* Role — editable dropdown */}
+                    <td className="px-6 py-4">
+                      <select
+                        value={orgRole}
+                        onChange={(e) => handleRoleChange(member.id, e.target.value as OrgRole)}
+                        disabled={updateUser.isPending}
+                        className="text-xs font-medium capitalize rounded-full px-2.5 py-0.5 border-0 cursor-pointer disabled:opacity-50 focus:outline-none"
+                        style={{ backgroundColor: roleStyle.bg, color: roleStyle.color }}
+                      >
+                        {ORG_ROLES.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </td>
+
+                    {/* Email */}
+                    <td className="px-6 py-4">
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {member.email}
+                      </span>
+                    </td>
+
+                    {/* Phone */}
+                    <td className="px-6 py-4">
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {member.phone || '—'}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-4 text-right">
                       <button
-                        className="p-2 rounded-lg transition-colors inline-flex items-center justify-center"
+                        onClick={() => handleDelete(member.id, member.name)}
+                        disabled={deleteUser.isPending}
+                        className="p-2 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
                         style={{ color: 'var(--text-tertiary)' }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
@@ -248,19 +177,16 @@ export function TeamPage() {
                       >
                         <X style={{ width: '18px', height: '18px' }} />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
 
         {!isLoading && !isError && filteredMembers.length === 0 && (
-          <div
-            className="flex flex-col items-center justify-center py-16"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
+          <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
             <p className="text-sm">No team members found</p>
           </div>
         )}
@@ -269,12 +195,9 @@ export function TeamPage() {
       <AddMemberModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
 
       {/* Footer Stats */}
-      <div 
+      <div
         className="border-t px-8 py-4"
-        style={{ 
-          backgroundColor: 'var(--surface-primary)',
-          borderColor: 'var(--border-primary)'
-        }}
+        style={{ backgroundColor: 'var(--surface-primary)', borderColor: 'var(--border-primary)' }}
       >
         <div className="flex items-center justify-between text-sm">
           <span style={{ color: 'var(--text-secondary)' }}>

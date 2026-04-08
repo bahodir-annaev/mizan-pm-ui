@@ -2,8 +2,8 @@ import type { ApiUser } from '@/types/api';
 import type { TeamMember, TaskAssignee, AuthUser } from '@/types/domain';
 
 const AVATAR_COLORS = [
-  '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-  '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1',
+  'bg-blue-500', 'bg-green-500', 'bg-amber-500', 'bg-red-500', 'bg-purple-500',
+  'bg-cyan-500', 'bg-lime-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500',
 ];
 
 /** Deterministic color based on user id */
@@ -40,6 +40,18 @@ export function getUserInitials(firstName?: string, lastName?: string): string {
   return (`${first}${last}`.toUpperCase()) || '?';
 }
 
+function resolveOrgRole(api: ApiUser): 'owner' | 'admin' | 'manager' | 'member' | 'viewer' {
+  const roleNames = [
+    ...(api.roles ?? []),
+    ...(api.userRoles?.map((ur) => ur.role.name) ?? []),
+  ].map((r) => r.toLowerCase());
+  if (roleNames.includes('owner')) return 'owner';
+  if (roleNames.includes('admin')) return 'admin';
+  if (roleNames.includes('manager')) return 'manager';
+  if (roleNames.includes('viewer')) return 'viewer';
+  return 'member';
+}
+
 export function mapApiUserToTeamMember(api: ApiUser): TeamMember {
   const { firstName, lastName } = splitName(api);
   return {
@@ -49,6 +61,7 @@ export function mapApiUserToTeamMember(api: ApiUser): TeamMember {
     lastName,
     email: api.email,
     role: api.position ?? 'Member',
+    orgRole: resolveOrgRole(api),
     position: api.position,
     phone: api.phone,
     avatarUrl: api.avatarUrl,

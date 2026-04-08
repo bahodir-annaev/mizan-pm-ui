@@ -47,6 +47,7 @@ export function TimeTrackingProvider({ children }: { children: ReactNode }) {
   function startTracking(taskId: string) {
     const force = activeEntry !== null;
     hasInteractedRef.current = true;
+    const optimisticStartTime = new Date().toISOString();
     // Set everything in one synchronous batch — no intermediate renders.
     setIsStarting(true);
     setActiveEntry({
@@ -54,14 +55,20 @@ export function TimeTrackingProvider({ children }: { children: ReactNode }) {
       taskId,
       userId: '',
       userName: '',
-      startTime: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      startTime: optimisticStartTime,
+      createdAt: optimisticStartTime,
     });
 
     startMutation.mutate({ taskId, force }, {
       onSuccess: (entry) => {
-        // Ensure taskId is always set — some backends don't echo it back in the start response
-        setActiveEntry(entry.taskId ? entry : { ...entry, taskId });
+        // Ensure taskId is always set — some backends don't echo it back in the start response.
+        // Fall back to the optimistic startTime if the server's value is missing or unparseable,
+        // so the elapsed timer never gets stuck at 00:00 due to clock skew or a missing field.
+        const resolvedStartTime =
+          entry.startTime && !isNaN(new Date(entry.startTime).getTime())
+            ? entry.startTime
+            : optimisticStartTime;
+        setActiveEntry({ ...entry, taskId: entry.taskId || taskId, startTime: resolvedStartTime });
         setIsStarting(false);
       },
       onError: () => {

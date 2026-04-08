@@ -96,7 +96,7 @@ import { EditableWorkCell } from './EditableWorkCell';
 import { TaskTimeTrackingControl } from './TaskTimeTrackingControl';
 import { CompactDateCell } from './CompactDateCell';
 import { useProjectTasks, useAllTasks, useUpdateTask } from '@/hooks/api/useTasks';
-import type { Task } from '@/types/domain';
+import type { Task, TreeTask } from '@/types/domain';
 import type { TaskStatus, AcceptanceStatus } from '@/types/api';
 
 // Map legacy display strings to TaskStatus enum values
@@ -174,6 +174,7 @@ interface Work {
     blocks: string[];
   };
   subtasks?: Array<{
+    id: string; // real task ID for mutations
     title: string;
     completed: boolean;
     assignee?: {
@@ -196,13 +197,55 @@ interface Work {
   }>;
 }
 
-function taskToWork(task: Task): Work {
+function taskToWork(task: Task | TreeTask): Work {
+  // children from TreeTask take priority over legacy inline subtasks
+  const childTasks = 'children' in task ? (task as TreeTask).children : undefined;
+  const legacySubtasks = task.subtasks;
+
+  let subtasks: Work['subtasks'];
+
+  if (childTasks && childTasks.length > 0) {
+    // Real child tasks with IDs — use these for tree rendering
+    subtasks = childTasks.map(child => ({
+      id: child.id,
+      title: child.title,
+      completed: child.statusKey === 'DONE' || ['Done', 'End', 'Completed'].includes(child.status),
+      assignee: child.assignee
+        ? { name: child.assignee.name, initials: child.assignee.initials, color: child.assignee.color }
+        : undefined,
+      participants: (child.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
+      status: LEGACY_STATUS_TO_KEY[child.statusKey ?? child.status] ?? 'TODO',
+      priority: child.priority,
+      dateStart: child.startDate ?? child.dateStart ?? '',
+      dateEnd: child.dueDate ?? child.dateEnd ?? '',
+      progress: child.progress ?? 0,
+      workType: child.workType ?? '',
+      acceptance: LEGACY_ACCEPTANCE_TO_KEY[child.acceptance ?? ''] ?? 'PENDING',
+    }));
+  } else if (legacySubtasks && legacySubtasks.length > 0) {
+    // Legacy inline subtasks (fallback, no real IDs)
+    subtasks = legacySubtasks.map((st, i) => ({
+      id: `${task.id}-sub-${i}`,
+      title: st.title,
+      completed: st.statusKey === 'DONE' || ['Done', 'End', 'Completed'].includes(st.status),
+      assignee: st.assignee ? { name: st.assignee.name, initials: st.assignee.initials, color: st.assignee.color } : undefined,
+      participants: (st.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
+      status: LEGACY_STATUS_TO_KEY[st.statusKey ?? st.status] ?? 'TODO',
+      priority: st.priority,
+      dateStart: st.startDate ?? st.dateStart ?? '',
+      dateEnd: st.dueDate ?? st.dateEnd ?? '',
+      progress: st.progress ?? 0,
+      workType: st.workType ?? '',
+      acceptance: LEGACY_ACCEPTANCE_TO_KEY[st.acceptance ?? ''] ?? 'PENDING',
+    }));
+  }
+
   return {
     id: task.id,
     code: task.code,
     title: task.title,
     description: task.description,
-    project: task?.project?.name,
+    project: task?.project?.name ?? (task as any).project,
     projectId: task.projectId,
     assignee: task.assignee
       ? { id: task.assignee.id, name: task.assignee.name, initials: task.assignee.initials, color: task.assignee.color }
@@ -212,26 +255,14 @@ function taskToWork(task: Task): Work {
     statusKey: LEGACY_STATUS_TO_KEY[task.statusKey ?? task.status] ?? 'TODO',
     priority: task.priority,
     priorityKey: task.priorityKey,
-    dateStart: task.startDate ?? '',
-    dateEnd: task.dueDate ?? '',
+    dateStart: task.startDate ?? task.dateStart ?? '',
+    dateEnd: task.dueDate ?? task.dateEnd ?? '',
     progress: task.progress ?? 0,
     workType: task.workType ?? '',
     volume: task.volume,
     unit: task.unit,
     acceptance: LEGACY_ACCEPTANCE_TO_KEY[task.acceptance ?? ''] ?? 'PENDING',
-    subtasks: task.subtasks?.map(st => ({
-      title: st.title,
-      completed: st.statusKey === 'DONE' || ['Done', 'End', 'Completed'].includes(st.status),
-      assignee: st.assignee ? { name: st.assignee.name, initials: st.assignee.initials, color: st.assignee.color } : undefined,
-      participants: (st.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
-      status: LEGACY_STATUS_TO_KEY[st.statusKey ?? st.status] ?? 'TODO',
-      priority: st.priority,
-      dateStart: st.startDate ?? '',
-      dateEnd: st.dueDate ?? '',
-      progress: st.progress ?? 0,
-      workType: st.workType ?? '',
-      acceptance: LEGACY_ACCEPTANCE_TO_KEY[st.acceptance ?? ''] ?? 'PENDING',
-    })),
+    subtasks,
   };
 }
 
@@ -317,12 +348,19 @@ interface WorksTableProps {
   projectId?: string;
 }
 
-const EMPTY_TASKS: Task[] = [];
+const EMPTY_TREE: TreeTask[] = [];
 
 export function WorksTable({ projectId }: WorksTableProps = {}) {
-  const projectQuery = useProjectTasks(projectId);
+  const projectQuery = useProjectTasks({ projectId: projectId ?? '' });
   const allQuery = useAllTasks(undefined, { enabled: !projectId });
-  const { data: apiTasks = EMPTY_TASKS, isLoading, isError, error } = projectId ? projectQuery : allQuery;
+
+  const isLoading = projectId ? projectQuery.isLoading : allQuery.isLoading;
+  const isError   = projectId ? projectQuery.isError   : allQuery.isError;
+  const error     = projectId ? projectQuery.error      : allQuery.error;
+
+  const rootTasks: TreeTask[] = projectId
+    ? (projectQuery.data?.tree ?? EMPTY_TREE)
+    : (allQuery.data?.tree ?? EMPTY_TREE);
   const updateTask = useUpdateTask();
   const [selectedWorks, setSelectedWorks] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
@@ -334,10 +372,10 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
   const [editingTask, setEditingTask] = useState<Work | null>(null);
   const [subtaskParent, setSubtaskParent] = useState<{ id: string; title: string; projectId: string } | null>(null);
 
-  // Sync local state from API data whenever it changes
+  // Sync local state from tree roots whenever the query data changes
   useEffect(() => {
-    setWorksData(apiTasks.map(taskToWork));
-  }, [apiTasks]);
+    setWorksData(rootTasks.map(taskToWork));
+  }, [rootTasks]);
   
   const {
     columns,
@@ -387,8 +425,8 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
   };
 
   const handleOpenTaskDetail = (work: Work) => {
-    setEditingTask(work);
-    setEditModalOpen(true);
+    setDetailTask(work);
+    setViewMode('detail');
   };
 
   const handleBackToTable = () => {
@@ -642,27 +680,22 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                 const mainRow = (
                   <tr
                     key={work.id}
-                    className="transition-colors group relative cursor-pointer"
+                    className="transition-colors group relative"
                     tabIndex={0}
-                    style={{ 
+                    style={{
                       borderBottomColor: hasExpandedSubtasks ? 'transparent' : (isLastActiveTask ? 'var(--border-primary)' : 'var(--border-secondary)'),
                       borderBottomWidth: isLastActiveTask ? '2px' : '1px',
                       borderBottomStyle: 'solid',
-                      backgroundColor: isSelected 
-                        ? 'var(--accent-primary-bg)' 
-                        : isActive 
-                          ? 'var(--surface-secondary)' 
+                      backgroundColor: isSelected
+                        ? 'var(--accent-primary-bg)'
+                        : isActive
+                          ? 'var(--surface-secondary)'
                           : hasExpandedSubtasks
                             ? 'transparent'
                             : 'transparent',
                       borderLeftWidth: isActive ? '3px' : '0',
                       borderLeftColor: isActive ? 'var(--accent-primary)' : 'transparent',
                       borderLeftStyle: 'solid'
-                    }}
-                    onClick={() => {
-                      if (work.subtasks && work.subtasks.length > 0) {
-                        toggleTaskExpansion(work.id);
-                      }
                     }}
                     onKeyDown={(e) => {
                       // Enter or Space to start/pause task
@@ -701,10 +734,15 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                         }}
                       />
                     </td>
-                    <td className="px-4 py-4 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                      <div className="flex items-center h-full">
-                        {work.code}
-                      </div>
+                    <td className="px-4 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleOpenTaskDetail(work)}
+                        className="font-mono hover:underline underline-offset-2 transition-colors cursor-pointer"
+                        style={{ color: 'var(--accent-primary)' }}
+                        title="Open task detail"
+                      >
+                        {work.code ?? work.id}
+                      </button>
                     </td>
                     <td className="px-4 py-4" style={{ position: 'relative' }}>
                       {/* TREE STRUCTURE: Circular base node + Vertical spine line extending from parent down to children */}
@@ -824,10 +862,10 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                                   }}
                                   onClick={(e) => e.stopPropagation()}
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = work.dependencies.blockedBy.length > 0 ? '#F59E0B30' : '#5B9AFF30';
+                                    e.currentTarget.style.backgroundColor = (work.dependencies?.blockedBy?.length ?? 0) > 0 ? '#F59E0B30' : '#5B9AFF30';
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = work.dependencies.blockedBy.length > 0 ? '#F59E0B20' : '#5B9AFF20';
+                                    e.currentTarget.style.backgroundColor = (work.dependencies?.blockedBy?.length ?? 0) > 0 ? '#F59E0B20' : '#5B9AFF20';
                                   }}
                                   title="Dependencies"
                                 >
@@ -1002,7 +1040,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                     <td className="pl-4 pr-1 py-4">
                       <div className="flex items-center gap-2">
                         <div className="relative group/avatar">
-                          <Avatar className="w-7 h-7">
+                          <Avatar className="w-10 h-10">
                             <AvatarFallback className={`${work.assignee.color} text-white text-xs`}>
                               {work.assignee.initials}
                             </AvatarFallback>
@@ -1029,7 +1067,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                         <div className="flex -space-x-3">
                           {work.participants.map((participant, i) => (
                             <div key={i} className="relative group/avatar">
-                              <Avatar className="w-7 h-7 border-2" style={{ borderColor: 'var(--bg-secondary)' }}>
+                              <Avatar className="w-10 h-10 border-2" style={{ borderColor: 'var(--bg-secondary)' }}>
                                 <AvatarFallback className={`${participant.color} text-white text-xs`}>
                                   {participant.initials}
                                 </AvatarFallback>
@@ -1122,7 +1160,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                           className="p-1.5 rounded transition-colors" 
                           style={{ color: 'var(--text-tertiary)' }}
                           title="Edit task"
-                          onClick={() => handleOpenTaskDetail(work)}
+                          onClick={() => { setEditingTask(work); setEditModalOpen(true); }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
                             e.currentTarget.style.color = 'var(--text-secondary)';
@@ -1314,6 +1352,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                             type="checkbox"
                             checked={subtask.completed}
                             onChange={(e) => {
+                              const newCompleted = e.target.checked;
                               setWorksData(prevWorks =>
                                 prevWorks.map(w =>
                                   w.id === work.id && w.subtasks
@@ -1321,13 +1360,20 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                                         ...w,
                                         subtasks: w.subtasks.map((st, i) =>
                                           i === subIndex
-                                            ? { ...st, completed: e.target.checked }
+                                            ? { ...st, completed: newCompleted }
                                             : st
                                         )
                                       }
                                     : w
                                 )
                               );
+                              // Persist to API using the real task ID
+                              if (subtask.id && !subtask.id.includes('-sub-')) {
+                                updateTask.mutate({
+                                  id: subtask.id,
+                                  dto: { status: newCompleted ? 'DONE' : 'PLANNING' },
+                                });
+                              }
                             }}
                             className="w-4 h-4 rounded"
                             style={{
@@ -1401,10 +1447,10 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                               {subtask.title}
                             </span>
                           </div>
-                          {/* Priority - Text Only */}
-                          <div className="flex items-center">
-                            <Select 
-                              value={subtask.priority} 
+                          {/* Priority + Add sub-subtask */}
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={subtask.priority}
                               onValueChange={(newPriority) => {
                                 setWorksData(prevWorks =>
                                   prevWorks.map(w =>
@@ -1422,7 +1468,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                                 );
                               }}
                             >
-                              <SelectTrigger 
+                              <SelectTrigger
                                 className="h-auto border-0 shadow-none p-0 hover:opacity-80 transition-opacity focus:ring-0 focus:ring-offset-0"
                                 style={{ width: 'auto', backgroundColor: 'transparent' }}
                               >
@@ -1445,6 +1491,17 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <button
+                              title="Add subtask"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSubtaskParent({ id: subtask.id, title: subtask.title, projectId: work.projectId ?? '' });
+                              }}
+                              className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--surface-hover)] ml-auto"
+                              style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
+                            >
+                              <Plus style={{ width: '13px', height: '13px' }} />
+                            </button>
                           </div>
                         </div>
                       </td>
@@ -1465,7 +1522,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                         {subtask.assignee && (
                           <div className="flex items-center gap-2">
                             <div className="relative group/avatar">
-                              <Avatar className="w-6 h-6">
+                              <Avatar className="w-8 h-8">
                                 <AvatarFallback className={`${subtask.assignee.color} text-white text-xs`} style={{ fontSize: '10px' }}>
                                   {subtask.assignee.initials}
                                 </AvatarFallback>
@@ -1495,7 +1552,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                             <div className="flex -space-x-2.5">
                               {subtask.participants.map((participant, i) => (
                                 <div key={i} className="relative group/avatar">
-                                  <Avatar className="w-6 h-6 border-2" style={{ borderColor: 'var(--bg-secondary)' }}>
+                                  <Avatar className="w-8 h-8 border-2" style={{ borderColor: 'var(--bg-secondary)' }}>
                                     <AvatarFallback className={`${participant.color} text-white text-xs`} style={{ fontSize: '10px' }}>
                                       {participant.initials}
                                     </AvatarFallback>
@@ -1626,9 +1683,10 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                               e.stopPropagation();
                               // Convert subtask to Work format for modal
                               const subtaskAsWork = {
-                                id: `${work.id}-sub-${subIndex}`,
+                                id: subtask.id,
                                 title: subtask.title,
                                 project: work.project,
+                                projectId: work.projectId,
                                 assignee: subtask.assignee || work.assignee,
                                 participants: subtask.participants || [],
                                 status: subtask.status,
@@ -1683,7 +1741,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                             <Ellipsis className="w-4 h-4" />
                           </button>
                           </div>
-                          <TaskTimeTrackingControl taskId={`${work.id}-sub-${subIndex}`} />
+                          <TaskTimeTrackingControl taskId={subtask.id} />
                         </div>
                       </td>
                       <td className="px-4 py-4"></td>

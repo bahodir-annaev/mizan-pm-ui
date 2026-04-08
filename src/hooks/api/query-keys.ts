@@ -10,9 +10,10 @@ export const queryKeys = {
   },
   tasks: {
     all: ['tasks'] as const,
-    list: (params?: object) => [...queryKeys.tasks.all, 'list', params] as const,
-    byProject: (projectId: string) => [...queryKeys.tasks.all, 'project', projectId] as const,
+    list: (params?: object) => params ? [...queryKeys.tasks.all, 'list', params] as const : [...queryKeys.tasks.all, 'list'] as const,
+    byProject: (projectId: string, filters?: object) => filters ? [...queryKeys.tasks.all, 'project', projectId, filters] as const : [...queryKeys.tasks.all, 'project', projectId] as const,
     tree: (projectId: string) => [...queryKeys.tasks.all, 'project', projectId, 'tree'] as const,
+    children: (taskId: string) => [...queryKeys.tasks.all, taskId, 'children'] as const,
     detail: (id: string) => [...queryKeys.tasks.all, 'detail', id] as const,
     checklist: (taskId: string) => [...queryKeys.tasks.all, taskId, 'checklist'] as const,
     comments: (taskId: string) => [...queryKeys.tasks.all, taskId, 'comments'] as const,
@@ -57,6 +58,7 @@ export const queryKeys = {
     weeklyProductivity: () => [...queryKeys.analytics.all, 'weekly-productivity'] as const,
     monthlyReport: (year: number, month: number) => [...queryKeys.analytics.all, 'monthly-report', year, month] as const,
     recentlyCompleted: (limit: number) => [...queryKeys.analytics.all, 'recently-completed', limit] as const,
+    timeMatrix: (days: number) => [...queryKeys.analytics.all, 'time-matrix', days] as const,
   },
   budget: {
     all: ['budget'] as const,

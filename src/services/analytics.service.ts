@@ -10,6 +10,7 @@ import type {
   WeeklyProductivityData,
   MonthlyReport,
   RecentlyCompletedData,
+  TimeMatrixResponse,
 } from '@/types/api';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -142,5 +143,45 @@ export async function getMonthlyReport(year: number, month: number): Promise<Mon
 export async function getRecentlyCompleted(limit = 10): Promise<RecentlyCompletedData> {
   if (USE_MOCK_DATA) return MOCK_RECENTLY_COMPLETED.slice(0, limit);
   const { data } = await apiClient.get<RecentlyCompletedData>(`/analytics/recently-completed?limit=${limit}`);
+  return data;
+}
+
+function buildMockTimeMatrix(days: number): TimeMatrixResponse {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const from = new Date(today);
+  from.setDate(from.getDate() - (days - 1));
+  const fromStr = from.toISOString().slice(0, 10);
+  const toStr = today.toISOString().slice(0, 10);
+
+  const todayDow = today.getDay();
+  const makeHours = (seed: number): number[] =>
+    Array.from({ length: days }, (_, i) => {
+      const dow = ((todayDow - (days - 1 - i)) % 7 + 7) % 7;
+      if (dow === 0 || dow === 6) return 0;
+      const r = (n: number) => { const x = Math.sin(seed * 31 + n * 17) * 10000; return x - Math.floor(x); };
+      return r(i) < 0.15 ? 0 : parseFloat((4 + r(i + 100) * 4).toFixed(1));
+    });
+
+  return {
+    dateRange: { from: fromStr, to: toStr, days },
+    projects: [
+      { id: 'proj-1', name: 'Villa Aurora', status: 'IN_PROGRESS', type: 'RESIDENTIAL', currentTaskName: 'Foundation drawings', assignedUserId: 'EMP-001', assignedUserName: 'Sarah Chen', assignedUserInitials: 'SC', assignedUserAvatarUrl: null },
+      { id: 'proj-2', name: 'City Centre Tower', status: 'IN_PROGRESS', type: 'COMMERCIAL', currentTaskName: 'Structural analysis', assignedUserId: 'EMP-002', assignedUserName: 'Mike Johnson', assignedUserInitials: 'MJ', assignedUserAvatarUrl: null },
+      { id: 'proj-3', name: 'Park Landscape', status: 'ON_HOLD', type: 'LANDSCAPE', currentTaskName: 'Site survey review', assignedUserId: 'EMP-003', assignedUserName: 'Lisa Wang', assignedUserInitials: 'LW', assignedUserAvatarUrl: null },
+      { id: 'proj-4', name: 'Warehouse District', status: 'IN_PROGRESS', type: 'INDUSTRIAL', currentTaskName: '3D model drafts', assignedUserId: 'EMP-004', assignedUserName: 'Omar Patel', assignedUserInitials: 'OP', assignedUserAvatarUrl: null },
+    ],
+    employees: [
+      { userId: 'EMP-001', userName: 'Sarah Chen', projects: { 'proj-1': makeHours(1), 'proj-3': makeHours(2) } },
+      { userId: 'EMP-002', userName: 'Mike Johnson', projects: { 'proj-1': makeHours(3), 'proj-2': makeHours(4) } },
+      { userId: 'EMP-003', userName: 'Lisa Wang', projects: { 'proj-3': makeHours(5), 'proj-4': makeHours(6) } },
+      { userId: 'EMP-004', userName: 'Omar Patel', projects: { 'proj-2': makeHours(7), 'proj-4': makeHours(8) } },
+    ],
+  };
+}
+
+export async function getTimeMatrix(days = 30): Promise<TimeMatrixResponse> {
+  if (USE_MOCK_DATA) return buildMockTimeMatrix(days);
+  const { data } = await apiClient.get<TimeMatrixResponse>(`/analytics/time-matrix?days=${days}`);
   return data;
 }

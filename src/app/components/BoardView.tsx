@@ -785,7 +785,8 @@ function taskToCardData(task: Task): TaskCardData {
 
 // Main Board View Component
 export function BoardView({ projectId, tasks: propTasks, onTaskMove, onTaskClick }: BoardViewProps) {
-  const { data: apiTasks = [], isLoading } = useProjectTasks(projectId);
+  const { data: projectTasksData, isLoading } = useProjectTasks({ projectId: projectId ?? '' });
+  const apiTasks = projectTasksData?.flat ?? [];
   const updateTask = useUpdateTask();
 
   const sourceTasks: TaskCardData[] = projectId

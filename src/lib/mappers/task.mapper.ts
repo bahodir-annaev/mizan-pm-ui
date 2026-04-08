@@ -24,7 +24,7 @@ export function mapApiTaskToTask(api: ApiTask): Task {
       ? mapApiUserToTaskAssignee(api.assignees[0])
       : undefined;
 
-  const participants = api.participants?.map(mapApiUserToTaskAssignee) ?? [];
+  const participants = api.participants?.map((p) => mapApiUserToTaskAssignee(p.user)) ?? [];
 
   return {
     id: api.id,

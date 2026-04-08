@@ -76,3 +76,11 @@ export function useRecentlyCompleted(limit = 10) {
     staleTime: STALE_TIME,
   });
 }
+
+export function useTimeMatrix(days = 30) {
+  return useQuery({
+    queryKey: queryKeys.analytics.timeMatrix(days),
+    queryFn: () => analyticsService.getTimeMatrix(days),
+    staleTime: STALE_TIME,
+  });
+}

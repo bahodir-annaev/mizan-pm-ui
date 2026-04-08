@@ -32,11 +32,27 @@ export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type ProjectType = 'RESIDENTIAL' | 'COMMERCIAL' | 'INFRASTRUCTURE' | 'INDUSTRIAL' | 'OTHER';
 export type ProjectSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'ENTERPRISE';
 export type ComplexityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
-export type WorkType = 'architecture' | 'interior_design' | 'exterior_design' | 'landscape' | 'working_drawings' | '3d_visualization' | 'author_supervision' | 'documentation' | 'engineering' | 'client_coordination';
+export type WorkType =
+  | 'architecture'
+  | 'interior_design'
+  | 'exterior_design'
+  | 'landscape'
+  | 'working_drawings'
+  | '3d_visualization'
+  | 'author_supervision'
+  | 'documentation'
+  | 'engineering'
+  | 'client_coordination';
 export type AcceptanceStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'REVISION';
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
 export type ClientType = 'INDIVIDUAL' | 'COMPANY' | 'GOVERNMENT' | 'NGO';
-export type NotificationType = 'TASK_ASSIGNED' | 'TASK_UPDATED' | 'COMMENT_ADDED' | 'PROJECT_UPDATED' | 'DEADLINE_APPROACHING' | 'MENTION';
+export type NotificationType =
+  | 'TASK_ASSIGNED'
+  | 'TASK_UPDATED'
+  | 'COMMENT_ADDED'
+  | 'PROJECT_UPDATED'
+  | 'DEADLINE_APPROACHING'
+  | 'MENTION';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -68,9 +84,27 @@ export interface ResetPasswordDto {
 
 // ─── User ─────────────────────────────────────────────────────────────────────
 
+export interface UserRolePermission {
+  id: string;
+  name: string;
+  description: string;
+  resource: string;
+  action: string;
+}
+
 export interface UserRole {
-  role: string;
-  permissions: string[];
+  userId: string;
+  roleId: string;
+  assignedAt: string;
+  assignedBy: string | null;
+  role: {
+    id: string;
+    name: string;
+    description: string;
+    isSystem: boolean;
+    createdAt: string;
+    permissions: UserRolePermission[];
+  };
 }
 
 export interface ApiUser {
@@ -113,6 +147,7 @@ export interface UpdateUserDto {
   phone?: string;
   avatarUrl?: string;
   department?: string;
+  roles?: string[];
   location?: string;
   joinDate?: string;
   skills?: string[];
@@ -178,7 +213,7 @@ export interface ApiProject {
   progress: number; // 0–100
   areaSqm?: number;
   startDate?: string; // ISO date
-  dueDate?: string;   // ISO date
+  dueDate?: string; // ISO date
   budget?: number;
   isPinned: boolean;
   orgId: string;
@@ -249,7 +284,7 @@ export interface ApiTask {
   parentId?: string;
   assignee?: ApiUser;
   assignees?: ApiUser[];
-  participants?: ApiUser[];
+  participants?: { user: ApiUser }[];
   subtasks?: ApiTask[];
   code?: string;
   assigneeId?: string | null;
@@ -268,6 +303,8 @@ export interface ApiTask {
 // ─── Task Filter & Sort Params (for future filter UI) ────────────────────────
 // These map directly to query params accepted by GET /tasks
 export interface TaskFilterParams {
+  // Tree depth — how many levels of children to pre-load (default 2 on the backend)
+  depth?: number;
   // Filtering
   projectId?: string;
   assigneeId?: string;
@@ -275,7 +312,7 @@ export interface TaskFilterParams {
   priority?: TaskPriority | TaskPriority[];
   workType?: WorkType | WorkType[];
   search?: string;
-  dueDateFrom?: string;  // ISO date string
+  dueDateFrom?: string; // ISO date string
   dueDateTo?: string;
   startDateFrom?: string;
   startDateTo?: string;
@@ -530,6 +567,36 @@ export interface MonthlyReport {
   tasksCompleted: number;
   hoursLogged: number;
   projectsActive: number;
+}
+
+// ─── Analytics: Time Matrix ───────────────────────────────────────────────────
+
+export interface TimeMatrixProject {
+  id: string;
+  name: string;
+  status: string;
+  type: string;
+  currentTaskName: string;
+  assignedUserId: string;
+  assignedUserName: string;
+  assignedUserInitials: string;
+  assignedUserAvatarUrl: string | null;
+}
+
+export interface TimeMatrixEmployee {
+  userId: string;
+  userName: string;
+  projects: Record<string, number[]>; // projectId → daily hours array (length = days)
+}
+
+export interface TimeMatrixResponse {
+  dateRange: {
+    from: string;
+    to: string;
+    days: number;
+  };
+  projects: TimeMatrixProject[];
+  employees: TimeMatrixEmployee[];
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────

@@ -1,32 +1,170 @@
 import { useState } from 'react';
-import { ChevronDown, Upload, Download, HelpCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { ChevronDown, Upload, Download, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from '../contexts/TranslationContext';
 import { useTheme } from '../components/ThemeSwitcher';
 import { AppearanceSettings } from '../components/AppearanceSettings';
+import { useChangePassword } from '@/hooks/api/useUsers';
 
-type SettingsCategory = 
-  | 'general' 
+type SettingsCategory =
+  | 'general'
   | 'appearance'
-  | 'localization' 
-  | 'blog' 
-  | 'tags' 
-  | 'medals' 
-  | 'menu' 
-  | 'notifications' 
-  | 'integrations' 
+  | 'localization'
+  | 'blog'
+  | 'tags'
+  | 'medals'
+  | 'menu'
+  | 'notifications'
+  | 'integrations'
   | 'cron'
   | 'permissions'
   | 'client-portal'
   | 'projects'
   | 'configuration'
-  | 'plugins';
+  | 'plugins'
+  | 'security';
 
 type SettingsTab = 'general-settings' | 'top-menu' | 'footer' | 'pwa';
+
+function ChangePasswordSection() {
+  const { mutate: changePassword, isPending, isSuccess, isError, error } = useChangePassword();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [localError, setLocalError] = useState('');
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLocalError('');
+    if (newPassword !== confirmPassword) {
+      setLocalError('New passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setLocalError('New password must be at least 8 characters.');
+      return;
+    }
+    changePassword(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        },
+      },
+    );
+  }
+
+  const inputStyle = {
+    backgroundColor: 'var(--surface-primary)',
+    color: 'var(--text-primary)',
+    border: '1px solid var(--border-primary)',
+  };
+
+  function PasswordField({
+    label,
+    value,
+    onChange,
+    show,
+    onToggle,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    show: boolean;
+    onToggle: () => void;
+  }) {
+    return (
+      <div className="mb-4">
+        <label className="block text-sm mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+          {label}
+        </label>
+        <div className="relative">
+          <input
+            type={show ? 'text' : 'password'}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg text-sm pr-10"
+            style={inputStyle}
+            required
+          />
+          <button
+            type="button"
+            onClick={onToggle}
+            className="absolute right-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            {show ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-md">
+      <h3 className="text-base font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
+        Change Password
+      </h3>
+
+      <PasswordField
+        label="Current Password"
+        value={currentPassword}
+        onChange={setCurrentPassword}
+        show={showCurrent}
+        onToggle={() => setShowCurrent((v) => !v)}
+      />
+      <PasswordField
+        label="New Password"
+        value={newPassword}
+        onChange={setNewPassword}
+        show={showNew}
+        onToggle={() => setShowNew((v) => !v)}
+      />
+      <PasswordField
+        label="Confirm New Password"
+        value={confirmPassword}
+        onChange={setConfirmPassword}
+        show={showConfirm}
+        onToggle={() => setShowConfirm((v) => !v)}
+      />
+
+      {(localError || isError) && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ backgroundColor: 'var(--status-error-bg, #fee2e2)', color: 'var(--status-error, #dc2626)' }}>
+          {localError || (error as Error)?.message || 'Failed to change password.'}
+        </div>
+      )}
+
+      {isSuccess && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ backgroundColor: 'var(--status-success-bg, #dcfce7)', color: 'var(--status-success, #16a34a)' }}>
+          Password changed successfully.
+        </div>
+      )}
+
+      <div className="pt-2">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="px-6 py-3 rounded-lg text-sm transition-colors"
+          style={{ backgroundColor: 'var(--accent-primary)', color: '#ffffff', fontWeight: 500, opacity: isPending ? 0.7 : 1 }}
+        >
+          {isPending ? 'Saving…' : 'Change Password'}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export function SettingsPage() {
   const { t, language, setLanguage } = useTranslation();
   const { theme } = useTheme();
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>('general');
+  const location = useLocation();
+  const initialCategory = (location.state as { category?: SettingsCategory } | null)?.category ?? 'general';
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>(initialCategory);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general-settings');
 
   const categories = [
@@ -53,6 +191,7 @@ export function SettingsPage() {
         { key: 'projects' as const, label: 'Projects & Bridges' },
         { key: 'configuration' as const, label: 'Configuration' },
         { key: 'plugins' as const, label: 'Plugins' },
+        { key: 'security' as const, label: 'Security' },
       ]
     }
   ];
@@ -149,6 +288,9 @@ export function SettingsPage() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
           <div className="max-w-4xl">
+            {/* Security Settings */}
+            {activeCategory === 'security' && <ChangePasswordSection />}
+
             {/* Appearance Settings */}
             {activeCategory === 'appearance' && <AppearanceSettings />}
             
