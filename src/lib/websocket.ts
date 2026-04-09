@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { WS_URL, USE_MOCK_DATA } from './config';
+import { WS_URL } from './config';
 import { getAccessToken } from '@/app/auth/auth-storage';
 
 let socket: Socket | null = null;
@@ -13,7 +13,6 @@ export function isSocketConnected(): boolean {
 }
 
 export function connectSocket(): void {
-  if (USE_MOCK_DATA) return;
   if (socket?.connected) return;
 
   const token = getAccessToken();

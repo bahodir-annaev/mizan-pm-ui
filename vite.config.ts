@@ -3,6 +3,8 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
+const DEV_API_TARGET = process.env.VITE_DEV_API_TARGET ?? 'http://localhost:3000';
+
 export default defineConfig({
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
@@ -14,6 +16,19 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: DEV_API_TARGET,
+        changeOrigin: true,
+      },
+      '/socket.io': {
+        target: DEV_API_TARGET,
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })

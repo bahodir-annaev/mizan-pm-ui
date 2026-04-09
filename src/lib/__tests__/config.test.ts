@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { API_BASE_URL, WS_URL, USE_MOCK_DATA } from '../config';
+import { API_BASE_URL, WS_URL } from '../config';
 
 describe('config', () => {
   it('exports API_BASE_URL as a string', () => {
@@ -10,10 +10,6 @@ describe('config', () => {
   it('exports WS_URL as a string', () => {
     expect(typeof WS_URL).toBe('string');
     expect(WS_URL.length).toBeGreaterThan(0);
-  });
-
-  it('exports USE_MOCK_DATA as a boolean', () => {
-    expect(typeof USE_MOCK_DATA).toBe('boolean');
   });
 
   it('API_BASE_URL falls back to localhost when env var absent', () => {

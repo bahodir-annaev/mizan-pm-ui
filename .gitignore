@@ -9,13 +9,10 @@ dist-ssr/
 build/
 out/
 
-# Environment variables
+# Environment variables — .env.development and .env.production are committed (no secrets)
 .env
 .env.local
 .env.*.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Logs
 logs/

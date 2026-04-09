@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { onWsEvent } from '@/lib/websocket';
 import { queryKeys } from '@/hooks/api/query-keys';
-import { USE_MOCK_DATA } from '@/lib/config';
 
 /**
  * Listens to WebSocket events and invalidates the corresponding TanStack Query caches.
@@ -12,8 +11,6 @@ export function useRealtimeUpdates(): void {
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (USE_MOCK_DATA) return;
-
     const unsubs = [
       onWsEvent('task:created', (data: any) => {
         qc.invalidateQueries({ queryKey: queryKeys.tasks.byProject(data?.projectId) });

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Square } from 'lucide-react';
-import { useActiveTimer, useStopTimer } from '@/hooks/api/useTimeTracking';
+import { useTimeTracking } from '@/contexts/TimeTrackingContext';
 import { useTask } from '@/hooks/api/useTasks';
-import { useAuth } from '@/app/auth/AuthContext';
 
 function formatElapsed(startTime: string): string {
   const start = new Date(startTime).getTime();
@@ -28,19 +27,17 @@ function TaskTitle({ taskId }: { taskId: string }) {
 }
 
 export function ActiveTimerWidget() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { data: activeTimer } = useActiveTimer({ enabled: isAuthenticated && !isLoading });
-  const stopTimer = useStopTimer();
+  const { activeEntry, stopTracking, isStopping } = useTimeTracking();
   const [, tick] = useState(0);
 
   // Re-render every second to update the displayed elapsed time
   useEffect(() => {
-    if (!activeTimer) return;
+    if (!activeEntry) return;
     const id = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(id);
-  }, [activeTimer?.id]);
+  }, [activeEntry?.id]);
 
-  if (!activeTimer) return null;
+  if (!activeEntry) return null;
 
   return (
     <div
@@ -63,14 +60,14 @@ export function ActiveTimerWidget() {
       </span>
 
       {/* Task title (hidden on small screens) */}
-      <TaskTitle taskId={activeTimer.taskId} />
+      <TaskTitle taskId={activeEntry.taskId} />
 
       {/* Elapsed time */}
       <span
         className="text-sm font-mono font-medium tabular-nums"
         style={{ color: 'var(--text-primary)' }}
       >
-        {formatElapsed(activeTimer.startTime)}
+        {formatElapsed(activeEntry.startTime)}
       </span>
 
       {/* Stop button */}
@@ -78,8 +75,8 @@ export function ActiveTimerWidget() {
         className="flex items-center justify-center w-5 h-5 rounded transition-opacity hover:opacity-70 disabled:opacity-40"
         style={{ color: 'var(--status-late)' }}
         title="Stop timer"
-        disabled={stopTimer.isPending}
-        onClick={() => stopTimer.mutate(activeTimer.taskId)}
+        disabled={isStopping}
+        onClick={() => stopTracking(activeEntry.taskId)}
       >
         <Square className="w-3.5 h-3.5 fill-current" />
       </button>

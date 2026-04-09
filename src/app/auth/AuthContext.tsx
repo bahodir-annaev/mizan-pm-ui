@@ -3,7 +3,6 @@ import { apiClient } from '@/lib/api-client';
 import { setAccessToken, clearTokens } from '@/app/auth/auth-storage';
 import { AuthError } from '@/app/auth/auth-error';
 import { mapApiUserToAuthUser } from '@/lib/mappers';
-import { USE_MOCK_DATA } from '@/lib/config';
 import { connectSocket, disconnectSocket, isSocketConnected } from '@/lib/websocket';
 import type { LoginDto, RegisterDto, ApiUser } from '@/types/api';
 import type { AuthUser } from '@/types/domain';
@@ -21,29 +20,11 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const MOCK_USER: AuthUser = {
-  id: 'mock-user-1',
-  email: 'demo@example.com',
-  firstName: 'Demo',
-  lastName: 'User',
-  name: 'Demo User',
-  initials: 'DU',
-  color: '#3B82F6',
-  position: 'Project Manager',
-  orgId: 'mock-org-1',
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (USE_MOCK_DATA) {
-      setUser(MOCK_USER);
-      setIsLoading(false);
-      return;
-    }
-
     // Try refresh token on mount to restore session from httpOnly cookie
     apiClient
       .post<{ accessToken: string; user: ApiUser }>('/auth/refresh')
@@ -69,10 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(dto: LoginDto) {
-    if (USE_MOCK_DATA) {
-      setUser(MOCK_USER);
-      return;
-    }
     try {
       const { data } = await apiClient.post<{ accessToken: string; user: ApiUser }>('/auth/login', dto);
       setAccessToken(data.accessToken);
@@ -87,10 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function register(dto: RegisterDto) {
-    if (USE_MOCK_DATA) {
-      setUser(MOCK_USER);
-      return;
-    }
     try {
       const { data } = await apiClient.post<{ accessToken: string; user: ApiUser }>('/auth/register', dto);
       setAccessToken(data.accessToken);
@@ -105,11 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    // 1. Tell the server to invalidate the refresh token cookie first
-    if (!USE_MOCK_DATA) {
-      await apiClient.post('/auth/logout').catch(() => {});
-    }
-    // 2. Then clean up locally
+    await apiClient.post('/auth/logout').catch(() => {});
     disconnectSocket();
     clearTokens();
     setUser(null);
