@@ -36,7 +36,7 @@ export async function getProjectTasks(
   options: { depth?: number; filters?: TaskFilterParams } = {},
 ): Promise<{ data: Task[]; meta?: PaginationMeta }> {
   if (!projectId) return { data: [] };
-  const { depth = 2, filters = {} } = options;
+  const { depth = 3, filters = {} } = options;
   const response = await apiClient.get(`/projects/${projectId}/tasks`, {
     params: { depth, ...filters },
   });

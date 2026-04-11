@@ -5,7 +5,7 @@ import { buildTree } from '@/utils/buildTree';
 import type { CreateTaskDto, UpdateTaskDto, TaskFilterParams } from '@/types/api';
 
 export function useAllTasks(params?: TaskFilterParams, options?: { enabled?: boolean }) {
-  const mergedParams: TaskFilterParams = { depth: 2, ...params };
+  const mergedParams: TaskFilterParams = { depth: 3, limit: 100, ...params };
   return useQuery({
     queryKey: queryKeys.tasks.list(mergedParams),
     queryFn: () => taskService.getAllTasks(mergedParams),
@@ -24,10 +24,11 @@ interface UseProjectTasksOptions {
   filters?: TaskFilterParams;
 }
 
-export function useProjectTasks({ projectId, depth = 2, filters = {} }: UseProjectTasksOptions) {
+export function useProjectTasks({ projectId, depth = 3, filters = {} }: UseProjectTasksOptions) {
+  const mergedFilters: TaskFilterParams = { limit: 100, ...filters };
   return useQuery({
-    queryKey: queryKeys.tasks.byProject(projectId, { depth, ...filters }),
-    queryFn: () => taskService.getProjectTasks(projectId, { depth, filters }),
+    queryKey: queryKeys.tasks.byProject(projectId, { depth, ...mergedFilters }),
+    queryFn: () => taskService.getProjectTasks(projectId, { depth, filters: mergedFilters }),
     select: (response) => ({
       tree: buildTree(response.data),
       flat: response.data,

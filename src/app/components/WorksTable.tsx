@@ -26,57 +26,30 @@
  */
 
 import { useState, useEffect } from 'react';
-import { 
+import {
   ChevronDown,
   ChevronRight,
   Plus,
-  MoreHorizontal,
-  Star, 
-  Copy, 
-  Trash2, 
+  Copy,
   FolderOpen,
   SquareCheck,
-  Flag,
   Layers,
   Target,
-  Key,
-  CalendarRange,
-  FileText,
-  File,
-  ClipboardList,
-  Circle,
-  Play,
-  Pause,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
   ArrowUp,
   ArrowRight,
   ArrowDown,
-  Home,
-  PaintBucket,
-  Building,
-  Trees,
-  Box,
-  Eye,
   Pencil,
-  Wrench,
   Users,
   MessageSquare,
   Ellipsis,
-  Square,
   Link2,
   User,
   GitBranch,
   Calendar,
-  CalendarClock,
   TrendingUp,
-  LayoutList
+  LayoutList,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Progress } from './ui/progress';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import {
   Select,
@@ -91,7 +64,6 @@ import { AddTaskRow } from './AddTaskRow';
 import { AddTaskModal } from './AddTaskModal';
 import { ColumnEditorModal, ColumnConfig } from './ColumnEditorModal';
 import { useColumnConfig } from '../hooks/useColumnConfig';
-import { EditableColumnHeader } from './EditableColumnHeader';
 import { EditableWorkCell } from './EditableWorkCell';
 import { TaskTimeTrackingControl } from './TaskTimeTrackingControl';
 import { CompactDateCell } from './CompactDateCell';
@@ -99,6 +71,86 @@ import { useProjectTasks, useAllTasks, useUpdateTask } from '@/hooks/api/useTask
 import type { Task, TreeTask } from '@/types/domain';
 import type { TaskStatus, AcceptanceStatus } from '@/types/api';
 
+// ─── Tree utilities ──────────────────────────────────────────────────────────
+
+const TREE_INDENT = 20; // px per depth level
+
+interface FlatWorkNode {
+  work: Work;
+  depth: number;
+  hasChildren: boolean;
+  isExpanded: boolean;
+  isLastSibling: boolean;
+  ancestorIsLastSibling: boolean[];
+  parentWork: Work | null;
+  rootId: string;
+}
+
+function flattenVisibleWorks(
+  works: Work[],
+  expandedIds: Set<string>,
+  depth = 0,
+  ancestorFlags: boolean[] = [],
+  parentWork: Work | null = null,
+  rootId?: string,
+): FlatWorkNode[] {
+  const result: FlatWorkNode[] = [];
+  works.forEach((work, i) => {
+    const isLast = i === works.length - 1;
+    const hasChildren = (work.children?.length ?? 0) > 0;
+    const effectiveRootId = rootId ?? work.id;
+    result.push({ work, depth, hasChildren, isExpanded: expandedIds.has(work.id), isLastSibling: isLast, ancestorIsLastSibling: ancestorFlags, parentWork, rootId: effectiveRootId });
+    if (hasChildren && expandedIds.has(work.id)) {
+      result.push(...flattenVisibleWorks(work.children!, expandedIds, depth + 1, [...ancestorFlags, isLast], work, effectiveRootId));
+    }
+  });
+  return result;
+}
+
+function updateWorkById(works: Work[], id: string, updater: (w: Work) => Work): Work[] {
+  return works.map(w => {
+    if (w.id === id) return updater(w);
+    if (w.children?.length) return { ...w, children: updateWorkById(w.children, id, updater) };
+    return w;
+  });
+}
+
+function TreeConnectors({ depth, hasChildren, isExpanded, isLastSibling, ancestorIsLastSibling }: {
+  depth: number; hasChildren: boolean; isExpanded: boolean; isLastSibling: boolean; ancestorIsLastSibling: boolean[];
+}) {
+  if (depth === 0) {
+    if (!hasChildren || !isExpanded) return null;
+    return (
+      <svg style={{ position: 'absolute', left: '27px', top: '0', width: '10px', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 1 }}
+        preserveAspectRatio="none" viewBox="0 0 10 100">
+        <circle cx="5" cy="50" r="4" fill="#9ca3af" opacity="0.6" vectorEffect="non-scaling-stroke" />
+        <line x1="5" y1="54" x2="5" y2="100" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+      </svg>
+    );
+  }
+  const spineX = (depth - 1) * TREE_INDENT + 5;
+  const branchEndX = 42 + (depth - 1) * TREE_INDENT;
+  const svgWidth = 50 + (depth - 1) * TREE_INDENT;
+  return (
+    <svg style={{ position: 'absolute', left: '27px', top: '0', width: `${svgWidth}px`, height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 1 }}
+      preserveAspectRatio="none" viewBox={`0 0 ${svgWidth} 100`}>
+      {Array.from({ length: depth - 1 }, (_, level) =>
+        !ancestorIsLastSibling[level] ? (
+          <line key={level} x1={level * TREE_INDENT + 5} y1="0" x2={level * TREE_INDENT + 5} y2="100"
+            stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+        ) : null
+      )}
+      <line x1={spineX} y1="0" x2={spineX} y2="50" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+      {!isLastSibling && (
+        <line x1={spineX} y1="50" x2={spineX} y2="100" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+      )}
+      <path d={`M ${spineX} 50 Q ${spineX} 60, ${spineX + 10} 60 L ${branchEndX} 60`}
+        fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+// ─── Map legacy display strings to TaskStatus enum values ────────────────────
 // Map legacy display strings to TaskStatus enum values
 const LEGACY_STATUS_TO_KEY: Record<string, TaskStatus> = {
   'Start':       'TODO',
@@ -173,72 +225,13 @@ interface Work {
     blockedBy: string[];
     blocks: string[];
   };
-  subtasks?: Array<{
-    id: string; // real task ID for mutations
-    title: string;
-    completed: boolean;
-    assignee?: {
-      name: string;
-      initials: string;
-      color: string;
-    };
-    participants?: Array<{
-      name: string;
-      initials: string;
-      color: string;
-    }>;
-    status: string;
-    priority: string;
-    dateStart: string;
-    dateEnd: string;
-    progress: number;
-    workType: string;
-    acceptance: string;
-  }>;
+  /** Recursive children for multi-level tree rendering */
+  children?: Work[];
 }
 
 function taskToWork(task: Task | TreeTask): Work {
-  // children from TreeTask take priority over legacy inline subtasks
   const childTasks = 'children' in task ? (task as TreeTask).children : undefined;
-  const legacySubtasks = task.subtasks;
-
-  let subtasks: Work['subtasks'];
-
-  if (childTasks && childTasks.length > 0) {
-    // Real child tasks with IDs — use these for tree rendering
-    subtasks = childTasks.map(child => ({
-      id: child.id,
-      title: child.title,
-      completed: child.statusKey === 'DONE' || ['Done', 'End', 'Completed'].includes(child.status),
-      assignee: child.assignee
-        ? { name: child.assignee.name, initials: child.assignee.initials, color: child.assignee.color }
-        : undefined,
-      participants: (child.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
-      status: LEGACY_STATUS_TO_KEY[child.statusKey ?? child.status] ?? 'TODO',
-      priority: child.priority,
-      dateStart: child.startDate ?? child.dateStart ?? '',
-      dateEnd: child.dueDate ?? child.dateEnd ?? '',
-      progress: child.progress ?? 0,
-      workType: child.workType ?? '',
-      acceptance: LEGACY_ACCEPTANCE_TO_KEY[child.acceptance ?? ''] ?? 'PENDING',
-    }));
-  } else if (legacySubtasks && legacySubtasks.length > 0) {
-    // Legacy inline subtasks (fallback, no real IDs)
-    subtasks = legacySubtasks.map((st, i) => ({
-      id: `${task.id}-sub-${i}`,
-      title: st.title,
-      completed: st.statusKey === 'DONE' || ['Done', 'End', 'Completed'].includes(st.status),
-      assignee: st.assignee ? { name: st.assignee.name, initials: st.assignee.initials, color: st.assignee.color } : undefined,
-      participants: (st.participants ?? []).map(p => ({ name: p.name, initials: p.initials, color: p.color })),
-      status: LEGACY_STATUS_TO_KEY[st.statusKey ?? st.status] ?? 'TODO',
-      priority: st.priority,
-      dateStart: st.startDate ?? st.dateStart ?? '',
-      dateEnd: st.dueDate ?? st.dateEnd ?? '',
-      progress: st.progress ?? 0,
-      workType: st.workType ?? '',
-      acceptance: LEGACY_ACCEPTANCE_TO_KEY[st.acceptance ?? ''] ?? 'PENDING',
-    }));
-  }
+  const children = childTasks && childTasks.length > 0 ? childTasks.map(child => taskToWork(child)) : undefined;
 
   return {
     id: task.id,
@@ -262,7 +255,7 @@ function taskToWork(task: Task | TreeTask): Work {
     volume: task.volume,
     unit: task.unit,
     acceptance: LEGACY_ACCEPTANCE_TO_KEY[task.acceptance ?? ''] ?? 'PENDING',
-    subtasks,
+    children,
   };
 }
 
@@ -297,35 +290,6 @@ const getTaskTypeIcon = (title: string) => {
   return SquareCheck;
 };
 
-// Helper function to get work type icon
-const getWorkTypeIcon = (workType: string) => {
-  const iconMap: Record<string, any> = {
-    'Architecture': Home,
-    'Interior Design': PaintBucket,
-    'Exterior Design': Building,
-    'Landscape': Trees,
-    'Working Drawings': FileText,
-    '3D Visualization': Box,
-    'Author Supervision': Eye,
-    'Documentation': File,
-    'Engineering': Wrench,
-    'Client Coordination': Users,
-  };
-  return iconMap[workType] || Home;
-};
-
-// Helper function to get status icon (keyed by TaskStatus enum)
-const getStatusIcon = (statusKey: string) => {
-  const iconMap: Record<string, any> = {
-    'PLANNING':    Circle,
-    'TODO':        Play,
-    'IN_PROGRESS': Play,
-    'IN_REVIEW':   AlertCircle,
-    'DONE':        CheckCircle2,
-    'CANCELLED':   Clock,
-  };
-  return iconMap[statusKey] || Circle;
-};
 
 // Default column configuration
 const DEFAULT_COLUMNS: ColumnConfig[] = [
@@ -408,6 +372,12 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
   // Count active tasks
   const activeTasksCount = sortedWorks.filter(w => w.statusKey === 'IN_PROGRESS').length;
 
+  // Set of root-level IN_PROGRESS task IDs — used to detect divider insertion point
+  const activeRootSet = new Set(sortedWorks.filter(w => w.statusKey === 'IN_PROGRESS').map(w => w.id));
+
+  // Flatten the visible tree for unified row rendering (all depths)
+  const flatRows = flattenVisibleWorks(sortedWorks, expandedTasks);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedWorks(worksData.map(w => w.id));
@@ -453,11 +423,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
 
   // Handler for updating work data — optimistic local update + API call
   const handleUpdateWork = (workId: string, field: keyof Work, value: any) => {
-    // Optimistic local update
-    setWorksData(prevWorks =>
-      prevWorks.map(work => work.id === workId ? { ...work, [field]: value } : work)
-    );
-    // Persist to API
+    setWorksData(prev => updateWorkById(prev, workId, w => ({ ...w, [field]: value })));
     const apiField = WORK_FIELD_TO_DTO[field] ?? field;
     updateTask.mutate({ id: workId, dto: { [apiField]: value } });
   };
@@ -489,17 +455,13 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
 
   const handleStartTask = (workId: string) => {
     if (!canEditTasks) return;
-    setWorksData(prevWorks =>
-      prevWorks.map(work => work.id === workId ? { ...work, statusKey: 'IN_PROGRESS', status: 'In Progress' } : work)
-    );
+    setWorksData(prev => updateWorkById(prev, workId, w => ({ ...w, statusKey: 'IN_PROGRESS', status: 'In Progress' })));
     updateTask.mutate({ id: workId, dto: { status: 'IN_PROGRESS' } });
   };
 
   const handlePauseTask = (workId: string) => {
     if (!canEditTasks) return;
-    setWorksData(prevWorks =>
-      prevWorks.map(work => work.id === workId ? { ...work, statusKey: 'TODO', status: 'To Do' } : work)
-    );
+    setWorksData(prev => updateWorkById(prev, workId, w => ({ ...w, statusKey: 'TODO', status: 'To Do' })));
     updateTask.mutate({ id: workId, dto: { status: 'TODO' } });
   };
 
@@ -662,39 +624,36 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                   </tr>
                 </>
               )}
-              {sortedWorks.map((work, index) => {
+              {flatRows.map((node, flatIndex) => {
+                const { work, depth, hasChildren, isExpanded, isLastSibling, ancestorIsLastSibling, parentWork } = node;
                 const isSelected = selectedWorks.includes(work.id);
                 const isActive = work.statusKey === 'IN_PROGRESS';
-                const isLastActiveTask = isActive && sortedWorks[index + 1]?.statusKey !== 'IN_PROGRESS';
+                // Divider only after the last root-level IN_PROGRESS task
+                const isLastActiveRoot = depth === 0 && isActive && activeRootSet.has(work.id) &&
+                  !flatRows.slice(flatIndex + 1).some(n => n.depth === 0 && activeRootSet.has(n.work.id));
                 const priorityInfo = getPriorityIcon(work.priority);
-                const PriorityIcon = priorityInfo.icon;
                 const TaskTypeIcon = getTaskTypeIcon(work.title);
-                const WorkTypeIcon = getWorkTypeIcon(work.workType);
-                const StatusIcon = getStatusIcon(work.statusKey ?? '');
                 const canStart = work.statusKey === 'TODO' || work.statusKey === 'PLANNING';
                 const canPause = work.statusKey === 'IN_PROGRESS';
 
-                const hasExpandedSubtasks = work.subtasks && work.subtasks.length > 0 && expandedTasks.has(work.id);
+                const hasExpandedSubtasks = hasChildren && isExpanded;
 
                 // Task Row
+                const bgColor = depth === 0
+                  ? (isSelected ? 'var(--accent-primary-bg)' : isActive ? 'var(--surface-secondary)' : 'transparent')
+                  : (isSelected ? 'var(--accent-primary-bg)' : `rgba(0,0,0,${Math.min(depth * 0.015, 0.06)})`);
                 const mainRow = (
                   <tr
                     key={work.id}
                     className="transition-colors group relative"
                     tabIndex={0}
                     style={{
-                      borderBottomColor: hasExpandedSubtasks ? 'transparent' : (isLastActiveTask ? 'var(--border-primary)' : 'var(--border-secondary)'),
-                      borderBottomWidth: isLastActiveTask ? '2px' : '1px',
+                      borderBottomColor: hasExpandedSubtasks ? 'transparent' : (isLastActiveRoot ? 'var(--border-primary)' : 'var(--border-secondary)'),
+                      borderBottomWidth: isLastActiveRoot ? '2px' : '1px',
                       borderBottomStyle: 'solid',
-                      backgroundColor: isSelected
-                        ? 'var(--accent-primary-bg)'
-                        : isActive
-                          ? 'var(--surface-secondary)'
-                          : hasExpandedSubtasks
-                            ? 'transparent'
-                            : 'transparent',
-                      borderLeftWidth: isActive ? '3px' : '0',
-                      borderLeftColor: isActive ? 'var(--accent-primary)' : 'transparent',
+                      backgroundColor: bgColor,
+                      borderLeftWidth: isActive && depth === 0 ? '3px' : '0',
+                      borderLeftColor: isActive && depth === 0 ? 'var(--accent-primary)' : 'transparent',
                       borderLeftStyle: 'solid'
                     }}
                     onKeyDown={(e) => {
@@ -706,16 +665,12 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = isActive 
-                          ? 'var(--surface-tertiary)' 
-                          : 'var(--surface-hover)';
+                        e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = isActive 
-                          ? 'var(--surface-secondary)' 
-                          : 'transparent';
+                        e.currentTarget.style.backgroundColor = bgColor;
                       } else {
                         e.currentTarget.style.backgroundColor = 'var(--accent-primary-bg)';
                       }
@@ -745,62 +700,27 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                       </button>
                     </td>
                     <td className="px-4 py-4" style={{ position: 'relative' }}>
-                      {/* TREE STRUCTURE: Circular base node + Vertical spine line extending from parent down to children */}
-                      {work.subtasks && work.subtasks.length > 0 && expandedTasks.has(work.id) && (
-                        <svg
-                          className="parent-connector transition-all duration-200"
-                          style={{
-                            position: 'absolute',
-                            left: '27px',
-                            top: '0',
-                            width: '10px',
-                            height: '100%',
-                            overflow: 'visible',
-                            pointerEvents: 'none',
-                            zIndex: 1
-                          }}
-                          preserveAspectRatio="none"
-                          viewBox="0 0 10 100"
-                        >
-                          {/* Solid circular base node at parent task */}
-                          <circle
-                            cx="5"
-                            cy="50"
-                            r="4"
-                            fill="#9ca3af"
-                            opacity="0.6"
-                            vectorEffect="non-scaling-stroke"
-                          />
-                          
-                          {/* Vertical line extending down from circle */}
-                          <line
-                            x1="5"
-                            y1="54"
-                            x2="5"
-                            y2="100"
-                            stroke="#9ca3af"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            opacity="0.5"
-                            vectorEffect="non-scaling-stroke"
-                          />
-                        </svg>
-                      )}
-                      
-                      <div className="flex flex-col gap-1.5" style={{ position: 'relative', zIndex: 2 }}>
+                      <TreeConnectors
+                        depth={depth}
+                        hasChildren={hasChildren}
+                        isExpanded={isExpanded}
+                        isLastSibling={isLastSibling}
+                        ancestorIsLastSibling={ancestorIsLastSibling}
+                      />
+                      <div className="flex flex-col gap-1.5" style={{ position: 'relative', zIndex: 2, paddingLeft: depth > 0 ? `${depth * TREE_INDENT + 54}px` : 0 }}>
                         {/* Task Title Row */}
                         <div className="flex items-center gap-2.5">
                           {/* Chevron for subtasks */}
-                          {work.subtasks && work.subtasks.length > 0 ? (
+                          {hasChildren ? (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleTaskExpansion(work.id);
                               }}
                               className="flex-shrink-0 transition-all p-0.5 rounded relative"
-                              style={{ 
+                              style={{
                                 color: 'var(--text-tertiary)',
-                                backgroundColor: expandedTasks.has(work.id) ? 'var(--surface-secondary)' : 'transparent'
+                                backgroundColor: isExpanded ? 'var(--surface-secondary)' : 'transparent'
                               }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.color = 'var(--text-secondary)';
@@ -808,11 +728,11 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.color = 'var(--text-tertiary)';
-                                e.currentTarget.style.backgroundColor = expandedTasks.has(work.id) ? 'var(--surface-secondary)' : 'transparent';
+                                e.currentTarget.style.backgroundColor = isExpanded ? 'var(--surface-secondary)' : 'transparent';
                               }}
-                              title={expandedTasks.has(work.id) ? `Hide ${work.subtasks.length} subtasks` : `Show ${work.subtasks.length} subtasks`}
+                              title={isExpanded ? `Collapse subtasks` : `Expand subtasks`}
                             >
-                              {expandedTasks.has(work.id) ? (
+                              {isExpanded ? (
                                 <ChevronDown className="w-4 h-4" />
                               ) : (
                                 <ChevronRight className="w-4 h-4" />
@@ -836,17 +756,17 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                           </span>
                           
                           {/* Subtask Count Badge */}
-                          {work.subtasks && work.subtasks.length > 0 && (
-                            <div 
+                          {hasChildren && (
+                            <div
                               className="flex items-center gap-1 px-1.5 py-0.5 rounded transition-all"
                               style={{
-                                backgroundColor: expandedTasks.has(work.id) ? 'var(--accent-primary-bg)' : 'var(--surface-secondary)',
+                                backgroundColor: isExpanded ? 'var(--accent-primary-bg)' : 'var(--surface-secondary)',
                                 fontSize: '11px',
-                                color: expandedTasks.has(work.id) ? 'var(--accent-primary)' : 'var(--text-tertiary)'
+                                color: isExpanded ? 'var(--accent-primary)' : 'var(--text-tertiary)'
                               }}
                             >
                               <Layers className="w-3 h-3" />
-                              <span>{work.subtasks.filter(st => st.completed).length}/{work.subtasks.length}</span>
+                              <span>{work.children!.filter(c => c.statusKey === 'DONE').length}/{work.children!.length}</span>
                             </div>
                           )}
                           
@@ -982,11 +902,7 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                           <Select
                             value={work.priority}
                             onValueChange={(newPriority) => {
-                              setWorksData(prevWorks =>
-                                prevWorks.map(w =>
-                                  w.id === work.id ? { ...w, priority: newPriority } : w
-                                )
-                              );
+                              setWorksData(prev => updateWorkById(prev, work.id, w => ({ ...w, priority: newPriority })));
                               updateTask.mutate({ id: work.id, dto: { priority: newPriority.toUpperCase() as import('@/types/api').TaskPriority } });
                             }}
                           >
@@ -1097,21 +1013,11 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                         executionState={work.statusKey ?? 'TODO'}
                         reviewState={work.acceptance}
                         onExecutionChange={(newStatusKey) => {
-                          setWorksData(prevWorks =>
-                            prevWorks.map(w =>
-                              w.id === work.id
-                                ? { ...w, statusKey: newStatusKey, status: STATUS_DISPLAY[newStatusKey] ?? newStatusKey }
-                                : w
-                            )
-                          );
+                          setWorksData(prev => updateWorkById(prev, work.id, w => ({ ...w, statusKey: newStatusKey, status: STATUS_DISPLAY[newStatusKey] ?? newStatusKey })));
                           updateTask.mutate({ id: work.id, dto: { status: newStatusKey as TaskStatus } });
                         }}
                         onReviewChange={(newReview) => {
-                          setWorksData(prevWorks =>
-                            prevWorks.map(w =>
-                              w.id === work.id ? { ...w, acceptance: newReview } : w
-                            )
-                          );
+                          setWorksData(prev => updateWorkById(prev, work.id, w => ({ ...w, acceptance: newReview })));
                           updateTask.mutate({ id: work.id, dto: { acceptance: newReview as AcceptanceStatus } });
                         }}
                         isActive={isActive}
@@ -1221,547 +1127,21 @@ export function WorksTable({ projectId }: WorksTableProps = {}) {
                   </tr>
                 );
 
-                const dividerRows = isLastActiveTask ? [
+                // Insert section divider after the last root-level IN_PROGRESS task
+                const dividerRows = isLastActiveRoot ? [
                   <tr key={`${work.id}-divider-space`}>
-                      <td colSpan={13} className="px-4 py-0 h-3" style={{ 
-                        backgroundColor: 'var(--bg-secondary)'
-                      }}>
-                        <div className="h-full" />
-                      </td>
-                    </tr>,
-                  <tr key={`${work.id}-completed-label`}>
-                      <td colSpan={13} className="px-4 py-2 border-b" style={{ 
-                        backgroundColor: 'var(--surface-primary)',
-                        borderColor: 'var(--border-secondary)'
-                      }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs uppercase tracking-wider" style={{ 
-                            color: 'var(--text-tertiary)',
-                            fontWeight: 500
-                          }}>
-                            Other Tasks
-                          </span>
-                        </div>
-                      </td>
-                    </tr>,
-                  <tr key={`${work.id}-completed-header`} style={{ 
-                      backgroundColor: 'var(--surface-primary)',
-                      borderBottom: '1px solid var(--border-secondary)'
-                    }}>
-                      <th className="w-12 px-4 py-2"></th>
-                      <th className="px-4 py-2 text-left text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <div className="flex items-center h-full">
-                          <span>ID</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs min-w-[280px]" style={{ color: 'var(--text-secondary)' }}>
-                        <div className="flex items-center gap-2">
-                          <LayoutList className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Task title</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <div className="flex items-center gap-2">
-                          <FolderOpen className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Project</span>
-                        </div>
-                      </th>
-                      <th className="pl-4 pr-2 py-2 text-left text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        <div className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Assignee</span>
-                        </div>
-                      </th>
-                      <th className="pl-2 pr-4 py-2 text-left text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Participants</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        <div className="flex items-center gap-2">
-                          <GitBranch className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Workflow</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Start date</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <div className="flex items-center gap-2">
-                          <CalendarClock className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Due date</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs min-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Progress</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <div className="flex items-center gap-2">
-                          <Layers className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                          <span>Work type</span>
-                        </div>
-                      </th>
-                      <th className="w-32 px-4 py-2 text-left text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <div className="flex items-center h-full">
-                          <span>Actions</span>
-                        </div>
-                      </th>
-                      <th className="w-12 px-4 py-2"></th>
-                    </tr>
-                ] : [];
-
-                // Subtask rows (only if expanded)
-                const subtaskRows = work.subtasks && expandedTasks.has(work.id) ? work.subtasks.map((subtask, subIndex) => {
-                  const SubtaskTypeIcon = getTaskTypeIcon(subtask.title);
-                  const subtaskPriorityInfo = getPriorityIcon(subtask.priority);
-                  const isLastSubtask = subIndex === work.subtasks!.length - 1;
-                  
-                  return (
-                    <tr
-                      key={`${work.id}-subtask-${subIndex}`}
-                      className="subtask-row-item transition-all group relative animate-in fade-in slide-in-from-top-2 duration-200"
-                      style={{
-                        backgroundColor: 'var(--subtask-row-bg, #F9FAFB)',
-                        borderBottomColor: isLastSubtask ? 'var(--border-primary)' : 'var(--border-secondary)',
-                        borderBottomWidth: '1px',
-                        borderBottomStyle: 'solid',
-                        borderLeftWidth: '0',
-                        boxShadow: 'none',
-                        animationDelay: `${subIndex * 30}ms`,
-                        animationFillMode: 'backwards'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--subtask-row-hover, #F3F4F6)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--subtask-row-bg, #F9FAFB)';
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Checkbox cell */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={subtask.completed}
-                            onChange={(e) => {
-                              const newCompleted = e.target.checked;
-                              setWorksData(prevWorks =>
-                                prevWorks.map(w =>
-                                  w.id === work.id && w.subtasks
-                                    ? {
-                                        ...w,
-                                        subtasks: w.subtasks.map((st, i) =>
-                                          i === subIndex
-                                            ? { ...st, completed: newCompleted }
-                                            : st
-                                        )
-                                      }
-                                    : w
-                                )
-                              );
-                              // Persist to API using the real task ID
-                              if (subtask.id && !subtask.id.includes('-sub-')) {
-                                updateTask.mutate({
-                                  id: subtask.id,
-                                  dto: { status: newCompleted ? 'DONE' : 'PLANNING' },
-                                });
-                              }
-                            }}
-                            className="w-4 h-4 rounded"
-                            style={{
-                              borderColor: 'var(--border-primary)',
-                              backgroundColor: 'var(--input-bg)',
-                              accentColor: 'var(--accent-primary)'
-                            }}
-                          />
-                        </div>
-                      </td>
-                      {/* Empty ID cell for subtasks - merged with title */}
-                      <td className="px-4 py-4" style={{ width: '0', padding: '0' }}></td>
-                      {/* Subtask Title with Tree Connector */}
-                      <td className="px-4 py-4" style={{ position: 'relative' }}>
-                        {/* TREE STRUCTURE: Complete connector line with vertical spine + curved branch */}
-                        <svg 
-                          className="subtask-connector transition-all duration-200"
-                          style={{
-                            position: 'absolute',
-                            left: '27px',
-                            top: '0',
-                            width: '50px',
-                            height: '100%',
-                            overflow: 'visible',
-                            pointerEvents: 'none'
-                          }}
-                          preserveAspectRatio="none"
-                          viewBox="0 0 50 100"
-                        >
-                          {/* Continuous vertical main line */}
-                          <line
-                            x1="5"
-                            y1="0"
-                            x2="5"
-                            y2={isLastSubtask ? '50' : '100'}
-                            stroke="#9ca3af"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            opacity="0.5"
-                            vectorEffect="non-scaling-stroke"
-                          />
-                          
-                          {/* Smooth curved branch extending to the right */}
-                          <path
-                            d="M 5 50 Q 5 60, 15 60 L 42 60"
-                            fill="none"
-                            stroke="#9ca3af"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            opacity="0.5"
-                            vectorEffect="non-scaling-stroke"
-                          />
-                        </svg>
-                        
-                        <div className="flex flex-col gap-1.5" style={{ paddingLeft: '74px' }}>
-                          <div className="flex items-center gap-2">
-                            <SubtaskTypeIcon 
-                              className="w-3.5 h-3.5 flex-shrink-0" 
-                              style={{ color: 'var(--text-tertiary)', opacity: 0.4 }} 
-                            />
-                            <span
-                              className="text-sm"
-                              style={{
-                                color: subtask.completed ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                                textDecoration: subtask.completed ? 'line-through' : 'none',
-                                fontSize: '13px',
-                                fontWeight: 400
-                              }}
-                            >
-                              {subtask.title}
-                            </span>
-                          </div>
-                          {/* Priority + Add sub-subtask */}
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={subtask.priority}
-                              onValueChange={(newPriority) => {
-                                setWorksData(prevWorks =>
-                                  prevWorks.map(w =>
-                                    w.id === work.id && w.subtasks
-                                      ? {
-                                          ...w,
-                                          subtasks: w.subtasks.map((st, i) =>
-                                            i === subIndex
-                                              ? { ...st, priority: newPriority }
-                                              : st
-                                          )
-                                        }
-                                      : w
-                                  )
-                                );
-                              }}
-                            >
-                              <SelectTrigger
-                                className="h-auto border-0 shadow-none p-0 hover:opacity-80 transition-opacity focus:ring-0 focus:ring-offset-0"
-                                style={{ width: 'auto', backgroundColor: 'transparent' }}
-                              >
-                                <SelectValue>
-                                  <span className={`text-xs ${subtaskPriorityInfo.className}`} style={{ fontSize: '11px' }}>
-                                    {subtask.priority}
-                                  </span>
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent style={{
-                                backgroundColor: 'var(--surface-primary)',
-                                borderColor: 'var(--border-primary)'
-                              }}>
-                                {priorityOptions.map(option => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    <span className={`text-xs ${option.className}`}>
-                                      {option.value}
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <button
-                              title="Add subtask"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSubtaskParent({ id: subtask.id, title: subtask.title, projectId: work.projectId ?? '' });
-                              }}
-                              className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--surface-hover)] ml-auto"
-                              style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
-                            >
-                              <Plus style={{ width: '13px', height: '13px' }} />
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Project - inherited from parent */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2" style={{ opacity: 0.5 }}>
-                          <FolderOpen 
-                            className="w-3 h-3 flex-shrink-0" 
-                            style={{ color: 'var(--text-tertiary)' }} 
-                          />
-                          <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>
-                            {work.project}
-                          </span>
-                        </div>
-                      </td>
-                      {/* Assignee */}
-                      <td className="pl-4 pr-1 py-4">
-                        {subtask.assignee && (
-                          <div className="flex items-center gap-2">
-                            <div className="relative group/avatar">
-                              <Avatar className="w-8 h-8">
-                                <AvatarFallback className={`${subtask.assignee.color} text-white text-xs`} style={{ fontSize: '10px' }}>
-                                  {subtask.assignee.initials}
-                                </AvatarFallback>
-                              </Avatar>
-                              {/* Tooltip on hover */}
-                              <div
-                                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
-                                style={{
-                                  fontSize: '10px',
-                                  fontFamily: 'var(--font-text)',
-                                  backgroundColor: 'var(--popover)',
-                                  color: 'var(--popover-foreground)',
-                                  boxShadow: 'var(--shadow-md)',
-                                  border: '1px solid var(--border)'
-                                }}
-                              >
-                                {subtask.assignee.name}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      {/* Participants */}
-                      <td className="pl-1 pr-4 py-4">
-                        {subtask.participants && subtask.participants.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-2.5">
-                              {subtask.participants.map((participant, i) => (
-                                <div key={i} className="relative group/avatar">
-                                  <Avatar className="w-8 h-8 border-2" style={{ borderColor: 'var(--bg-secondary)' }}>
-                                    <AvatarFallback className={`${participant.color} text-white text-xs`} style={{ fontSize: '10px' }}>
-                                      {participant.initials}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  {/* Tooltip on hover */}
-                                  <div
-                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
-                                    style={{
-                                      fontSize: '10px',
-                                      fontFamily: 'var(--font-text)',
-                                      backgroundColor: 'var(--popover)',
-                                      color: 'var(--popover-foreground)',
-                                      boxShadow: 'var(--shadow-md)',
-                                      border: '1px solid var(--border)'
-                                    }}
-                                  >
-                                    {participant.name}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      {/* Workflow */}
-                      <td className="px-4 py-4">
-                        <UnifiedWorkflowCell
-                          executionState={subtask.status}
-                          reviewState={subtask.acceptance}
-                          onExecutionChange={(newStatusKey) => {
-                            setWorksData(prevWorks =>
-                              prevWorks.map(w =>
-                                w.id === work.id && w.subtasks
-                                  ? {
-                                      ...w,
-                                      subtasks: w.subtasks.map((st, i) =>
-                                        i === subIndex
-                                          ? { ...st, status: newStatusKey }
-                                          : st
-                                      )
-                                    }
-                                  : w
-                              )
-                            );
-                          }}
-                          onReviewChange={(newReview) => {
-                            setWorksData(prevWorks =>
-                              prevWorks.map(w =>
-                                w.id === work.id && w.subtasks
-                                  ? {
-                                      ...w,
-                                      subtasks: w.subtasks.map((st, i) =>
-                                        i === subIndex
-                                          ? { ...st, acceptance: newReview }
-                                          : st
-                                      )
-                                    }
-                                  : w
-                              )
-                            );
-                          }}
-                          isActive={subtask.status === 'IN_PROGRESS'}
-                        />
-                      </td>
-                      {/* Dates - Compact View */}
-                      <td className="px-4 py-4">
-                        <CompactDateCell 
-                          startDate={subtask.dateStart}
-                          dueDate={subtask.dateEnd}
-                        />
-                      </td>
-                      {/* Progress */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 relative h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-tertiary)' }}>
-                            <div 
-                              className="absolute top-0 left-0 h-full rounded-full transition-all"
-                              style={{ 
-                                width: `${subtask.progress}%`,
-                                backgroundColor: 'var(--accent-primary)',
-                                opacity: 0.7
-                              }}
-                            />
-                          </div>
-                          <span 
-                            className="text-xs min-w-[3ch]" 
-                            style={{ 
-                              color: 'var(--text-tertiary)',
-                              fontSize: '11px'
-                            }}
-                          >
-                            {subtask.progress}%
-                          </span>
-                        </div>
-                      </td>
-                      {/* Work Type */}
-                      <td className="px-4 py-4">
-                        <EditableWorkCell
-                          field="workType"
-                          value={subtask.workType}
-                          onChange={(newType) => {
-                            setWorksData(prevWorks =>
-                              prevWorks.map(w =>
-                                w.id === work.id && w.subtasks
-                                  ? {
-                                      ...w,
-                                      subtasks: w.subtasks.map((st, i) =>
-                                        i === subIndex
-                                          ? { ...st, workType: newType }
-                                          : st
-                                      )
-                                    }
-                                  : w
-                              )
-                            );
-                          }}
-                        />
-                      </td>
-                      {/* Actions */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2 h-full">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
-                            className="p-1.5 rounded transition-colors" 
-                            style={{ color: 'var(--text-tertiary)' }}
-                            title="Edit subtask"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Convert subtask to Work format for modal
-                              const subtaskAsWork = {
-                                id: subtask.id,
-                                title: subtask.title,
-                                project: work.project,
-                                projectId: work.projectId,
-                                assignee: subtask.assignee || work.assignee,
-                                participants: subtask.participants || [],
-                                status: subtask.status,
-                                priority: subtask.priority,
-                                dateStart: subtask.dateStart,
-                                dateEnd: subtask.dateEnd,
-                                progress: subtask.progress,
-                                workType: subtask.workType,
-                                acceptance: subtask.acceptance,
-                              };
-                              handleOpenTaskDetail(subtaskAsWork);
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = 'var(--text-tertiary)';
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="p-1.5 rounded transition-colors" 
-                            style={{ color: 'var(--text-tertiary)' }}
-                            title="Comment"
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = 'var(--text-tertiary)';
-                            }}
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="p-1.5 rounded transition-colors" 
-                            style={{ color: 'var(--text-tertiary)' }}
-                            title="More"
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = 'var(--text-tertiary)';
-                            }}
-                          >
-                            <Ellipsis className="w-4 h-4" />
-                          </button>
-                          </div>
-                          <TaskTimeTrackingControl taskId={subtask.id} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-4"></td>
-                    </tr>
-                  );
-                }) : [];
-
-                // Add a subtle separator after subtasks if expanded
-                const subtaskSeparator = work.subtasks && work.subtasks.length > 0 && expandedTasks.has(work.id) ? (
-                  <tr key={`${work.id}-subtask-separator`} className="animate-in fade-in duration-200">
-                    <td colSpan={13} className="px-4 py-0 h-2" style={{ 
-                      backgroundColor: 'var(--bg-secondary)',
-                      borderBottom: '1px solid var(--border-primary)'
-                    }}>
+                    <td colSpan={13} className="px-4 py-0 h-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                       <div className="h-full" />
                     </td>
-                  </tr>
-                ) : null;
+                  </tr>,
+                  <tr key={`${work.id}-completed-label`}>
+                    <td colSpan={13} className="px-4 py-2 border-b" style={{ backgroundColor: 'var(--surface-primary)', borderColor: 'var(--border-secondary)' }}>
+                      <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>Other Tasks</span>
+                    </td>
+                  </tr>,
+                ] : [];
 
-                return [mainRow, ...subtaskRows, subtaskSeparator, ...dividerRows].filter(Boolean);
+                return [mainRow, ...dividerRows].filter(Boolean);
               })}
               
               {/* Add Task Row */}
