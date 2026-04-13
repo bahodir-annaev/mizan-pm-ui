@@ -1,4 +1,5 @@
-import { LayoutDashboard, FolderKanban, Briefcase, ChartBar, Settings, Users, Building2, ChevronDown, ChevronRight, Pin, Plus, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Briefcase, ChartBar, Settings, Users, Building2, ChevronDown, ChevronRight, Pin, Plus, MoreHorizontal, DollarSign, TrendingUp, Layers, Wrench, Clock } from 'lucide-react';
+import { useEffect } from 'react';
 import { Logo } from './Logo';
 import { useTranslation } from '../contexts/TranslationContext';
 import { MiroSidebarMenu } from './MiroSidebarMenu';
@@ -34,6 +35,11 @@ export function Sidebar({ currentPath }: SidebarProps) {
   ];
 
   const [isProjectsMenuOpen, setProjectsMenuOpen] = useState(true);
+  const [isFinanceOpen, setFinanceOpen] = useState(() => location.pathname.startsWith('/finance'));
+
+  useEffect(() => {
+    if (activePath.startsWith('/finance')) setFinanceOpen(true);
+  }, [activePath]);
   const { data: projects = [], isLoading: projectsLoading } = useSidebarProjects();
 
   return (
@@ -179,6 +185,54 @@ export function Sidebar({ currentPath }: SidebarProps) {
                   </button>
                 ))
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Finance Section - Collapsible */}
+        <div className="mt-2">
+          <button
+            onClick={() => { setFinanceOpen(!isFinanceOpen); navigate('/finance'); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors"
+            style={{
+              backgroundColor: activePath.startsWith('/finance') ? 'var(--surface-secondary)' : 'transparent',
+              color: activePath.startsWith('/finance') ? 'var(--text-primary)' : 'var(--text-secondary)',
+            }}
+            onMouseEnter={(e) => { if (!activePath.startsWith('/finance')) e.currentTarget.style.backgroundColor = 'var(--surface-secondary)'; }}
+            onMouseLeave={(e) => { if (!activePath.startsWith('/finance')) e.currentTarget.style.backgroundColor = 'transparent'; }}
+          >
+            {isFinanceOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <DollarSign className="w-5 h-5" />
+            <span>Finance</span>
+          </button>
+
+          {isFinanceOpen && (
+            <div className="ml-4 mt-1 space-y-0.5">
+              {[
+                { path: '/finance', label: 'Dashboard', icon: TrendingUp, exact: true },
+                { path: '/finance/exchange-rates', label: 'Exchange Rates', icon: Layers, exact: false },
+                { path: '/finance/overhead-costs', label: 'Overhead Costs', icon: Briefcase, exact: false },
+                { path: '/finance/equipment', label: 'Equipment', icon: Wrench, exact: false },
+                { path: '/finance/hourly-rates', label: 'Hourly Rates', icon: Clock, exact: false },
+              ].map(({ path, label, icon: Icon, exact }) => {
+                const isActive = exact ? activePath === path : activePath.startsWith(path);
+                return (
+                  <button
+                    key={path}
+                    onClick={() => navigate(path)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
+                    style={{
+                      backgroundColor: isActive ? 'var(--accent-primary)' : 'transparent',
+                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--surface-tertiary)'; }}
+                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="flex-1 text-left truncate">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

@@ -4,7 +4,9 @@
       "Bash",
       "Read",
       "Edit",
-      "Write"
+      "Write",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:127.0.0.1)"
     ]
   }
 }

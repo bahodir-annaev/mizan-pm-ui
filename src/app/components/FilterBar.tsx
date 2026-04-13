@@ -17,23 +17,22 @@
  */
 
 import { useState, useEffect } from 'react';
-import { 
-  List, 
-  LayoutGrid, 
+import {
+  List,
+  LayoutGrid,
   GanttChart,
-  Search, 
-  Plus, 
+  Search,
+  Plus,
   Filter,
   ChevronDown,
   X,
   FileStack,
   Calendar,
-  Users,
-  Tag,
   Briefcase,
   Check
 } from 'lucide-react';
 import { AddTaskModal } from './AddTaskModal';
+import type { TaskFilters } from '@/types/domain';
 
 type ViewType = 'list' | 'board' | 'gantt';
 
@@ -53,9 +52,12 @@ interface ActiveFilter {
 interface FilterBarProps {
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
+  projectOptions?: FilterOption[];
+  assigneeOptions?: FilterOption[];
+  onFiltersChange?: (filters: TaskFilters) => void;
 }
 
-export function FilterBar({ activeView, onViewChange }: FilterBarProps) {
+export function FilterBar({ activeView, onViewChange, projectOptions = [], assigneeOptions = [], onFiltersChange }: FilterBarProps) {
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
@@ -126,31 +128,36 @@ export function FilterBar({ activeView, onViewChange }: FilterBarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDueDate, selectedWorkTypes]);
 
-  // Filter options
-  const projectOptions: FilterOption[] = [
-    { id: 'p1', label: 'Mehnat bozorini', value: 'p1' },
-    { id: 'p2', label: 'Xolis Ismailov', value: 'p2' },
-    { id: 'p3', label: 'John Company', value: 'p3' },
-  ];
-
+  // Static filter options with values matching domain data
   const statusOptions: FilterOption[] = [
-    { id: 's1', label: 'In Progress', value: 'progress' },
-    { id: 's2', label: 'Started', value: 'start' },
-    { id: 's3', label: 'Late', value: 'late' },
-    { id: 's4', label: 'Completed', value: 'end' },
-  ];
-
-  const assigneeOptions: FilterOption[] = [
-    { id: 'a1', label: 'Sarah Johnson', value: 'a1' },
-    { id: 'a2', label: 'Alex Kim', value: 'a2' },
-    { id: 'a3', label: 'Mike Chen', value: 'a3' },
+    { id: 'IN_PROGRESS', label: 'In Progress', value: 'IN_PROGRESS' },
+    { id: 'TODO',        label: 'To Do',        value: 'TODO' },
+    { id: 'PLANNING',   label: 'Planning',     value: 'PLANNING' },
+    { id: 'IN_REVIEW',  label: 'In Review',    value: 'IN_REVIEW' },
+    { id: 'DONE',       label: 'Done',         value: 'DONE' },
+    { id: 'CANCELLED',  label: 'Cancelled',    value: 'CANCELLED' },
   ];
 
   const priorityOptions: FilterOption[] = [
-    { id: 'high', label: 'High', value: 'high' },
-    { id: 'medium', label: 'Medium', value: 'medium' },
-    { id: 'low', label: 'Low', value: 'low' },
+    { id: 'High',   label: 'High',   value: 'High' },
+    { id: 'Medium', label: 'Medium', value: 'Medium' },
+    { id: 'Low',    label: 'Low',    value: 'Low' },
   ];
+
+  // Emit resolved TaskFilters to parent whenever active filters or search changes
+  useEffect(() => {
+    if (!onFiltersChange) return;
+    onFiltersChange({
+      search: searchQuery,
+      project: activeFilters.find(f => f.type === 'project')?.value ?? null,
+      status: activeFilters.find(f => f.type === 'status')?.value ?? null,
+      assignee: activeFilters.find(f => f.type === 'assignee')?.value ?? null,
+      priority: activeFilters.find(f => f.type === 'priority')?.value ?? null,
+      dueDate: (activeFilters.find(f => f.type === 'dueDate')?.value ?? null) as TaskFilters['dueDate'],
+      workTypes: activeFilters.filter(f => f.type === 'workType').map(f => f.value),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilters, searchQuery]);
 
   // Remove filter
   const removeFilter = (filter: ActiveFilter) => {

@@ -153,3 +153,114 @@ export interface AuthUser {
   orgId: string;
   roles?: string[];
 }
+
+// ─── Finance Domain Types ──────────────────────────────────────────────────────
+
+export interface ExchangeRate {
+  id: string;
+  rateDate: string;
+  uzsPerUsd: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HourlyRate {
+  id: string;
+  userId: string;
+  userName: string;       // joined from user
+  userInitials: string;
+  userColor: string;
+  effectiveDate: string;
+  salaryUzs: number;
+  bonusUzs: number;
+  taxUzs: number;
+  jssmUzs: number;
+  adminShareUzs: number;
+  equipmentShareUzs: number;
+  overheadShareUzs: number;
+  totalMonthlyCostUzs: number;
+  hourlyRateUzs: number;
+  hourlyRateUsd: number;
+  exchangeRateUsed: number;
+  productionEmployeeCount: number;
+  workingHoursPerMonth: number;
+  notes?: string;
+  isCronGenerated: boolean; // true when notes is absent (auto-created by cron)
+  createdAt: string;
+}
+
+export interface OverheadCost {
+  id: string;
+  periodYear: number;
+  periodMonth: number;
+  category: string;
+  amountUzs: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  purchaseDate: string;
+  purchaseCostUzs: number;
+  usefulLifeMonths: number;
+  residualValueUzs: number;
+  monthlyAmortizationUzs: number;
+  isActive: boolean;
+  serialNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectPlan {
+  id: string;
+  projectId: string;
+  version: number;
+  isCurrent: boolean;
+  contractValueUzs: number;
+  contractValueUsd?: number;
+  contractSignedDate?: string;
+  plannedHoursTotal: number;
+  avgHourlyRateUzs: number;
+  riskCoefficient: number;
+  mizanCostUzs: number;
+  plannedProfitUzs: number;
+  plannedMarginPct: number;
+  exchangeRateAtSigning: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ProjectMonthlyCost {
+  id: string;
+  projectId: string;
+  year: number;
+  month: number;
+  totalHours: number;
+  totalCostUzs: number;
+  totalCostUsd: number;
+  employeeCount: number;
+  isFinalized: boolean;
+}
+
+export interface PlanVsFact {
+  plan: ProjectPlan;
+  factToDateUzs: number;
+  remainingUzs: number;
+  burnRateUzs: number;
+  estimatedFinalCostUzs: number;
+}
+
+export interface TaskFilters {
+  search: string;
+  project: string | null;
+  status: string | null;
+  assignee: string | null;
+  priority: string | null;
+  dueDate: 'today' | 'week' | 'overdue' | null;
+  workTypes: string[];
+}

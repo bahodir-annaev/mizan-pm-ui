@@ -4,6 +4,14 @@ import * as userService from '@/services/user.service';
 import type { TeamMember } from '@/types/domain';
 import type { UpdateUserDto, ChangePasswordDto, UpdatePreferencesDto, CreateUserDto } from '@/types/api';
 
+export function useOnlineUsers() {
+  return useQuery({
+    queryKey: queryKeys.users.online(),
+    queryFn: userService.getOnlineUserIds,
+    staleTime: 30_000,
+  });
+}
+
 export function useUsers() {
   return useQuery({
     queryKey: queryKeys.users.list(),

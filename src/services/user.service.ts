@@ -3,6 +3,11 @@ import { mapApiUserToTeamMember } from '@/lib/mappers';
 import type { TeamMember } from '@/types/domain';
 import type { ApiUser, UpdateUserDto, ChangePasswordDto, UpdatePreferencesDto, CreateUserDto } from '@/types/api';
 
+export async function getOnlineUserIds(): Promise<string[]> {
+  const { data } = await apiClient.get<string[]>('/realtime/users/online');
+  return data;
+}
+
 export async function getUsers(): Promise<TeamMember[]> {
   const { data } = await apiClient.get<ApiUser[]>('/users');
   return data.map(mapApiUserToTeamMember);

@@ -105,20 +105,20 @@ html:not([data-theme]) {
   color-scheme: dark;
   
   /* Core Background Layers - Premium Deep Dark */
-  --bg-primary: #0E1116;
-  --bg-secondary: #12161D;
-  
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #0A0A0A;
+
   /* Surface Layers (Cards, Tables, Panels) */
-  --surface-primary: #12161D;
-  --surface-secondary: #151A22;
-  --surface-tertiary: #1C2230;
-  --surface-hover: #1C2230;
-  --surface-active: #222837;
-  
+  --surface-primary: #292929;
+  --surface-secondary: #292929;
+  --surface-tertiary: #333333;
+  --surface-hover: #333333;
+  --surface-active: #3d3d3d;
+
   /* Border & Divider */
-  --border-primary: #222837;
-  --border-secondary: #1A1F2B;
-  --border-hover: #2A3142;
+  --border-primary: #3d3d3d;
+  --border-secondary: #333333;
+  --border-hover: #4d4d4d;
   
   /* Text Colors */
   --text-primary: #ececec;

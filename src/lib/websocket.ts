@@ -66,7 +66,10 @@ export type WsEventName =
   | 'task:deleted'
   | 'project:created'
   | 'project:updated'
-  | 'time:logged';
+  | 'time:logged'
+  | 'user:online'
+  | 'user:offline'
+  | 'notification:new';
 
 export function onWsEvent(event: WsEventName, handler: (data: unknown) => void): () => void {
   if (!socket) return () => {};

@@ -322,7 +322,7 @@ export function ProjectDetailPanel({ project, isOpen, onClose }: ProjectDetailPa
                 </div>
 
                 {/* Subtasks */}
-                <div>
+                {/* <div>
                   <div className="flex items-center justify-between mb-3">
                     <label className="text-sm text-gray-600 flex items-center gap-2">
                       <CheckCheck className="w-4 h-4" />
@@ -343,10 +343,10 @@ export function ProjectDetailPanel({ project, isOpen, onClose }: ProjectDetailPa
                       <span className="text-sm text-gray-500 line-through flex-1">Requirements gathering</span>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Checklist */}
-                <div>
+                {/* <div>
                   <div className="flex items-center justify-between mb-3">
                     <label className="text-sm text-gray-600">Checklist</label>
                     <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
@@ -364,10 +364,10 @@ export function ProjectDetailPanel({ project, isOpen, onClose }: ProjectDetailPa
                       <span className="text-sm text-gray-700">Development environment setup</span>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Attachments */}
-                <div>
+                {/* <div>
                   <div className="flex items-center justify-between mb-3">
                     <label className="text-sm text-gray-600 flex items-center gap-2">
                       <Paperclip className="w-4 h-4" />
@@ -379,7 +379,7 @@ export function ProjectDetailPanel({ project, isOpen, onClose }: ProjectDetailPa
                     <p className="text-sm text-gray-600">Drop files here or click to upload</p>
                     <p className="text-xs text-gray-500 mt-1">PDF, Images, Documents</p>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Divider */}
                 <div className="border-t border-gray-200"></div>

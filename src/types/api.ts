@@ -52,7 +52,8 @@ export type NotificationType =
   | 'COMMENT_ADDED'
   | 'PROJECT_UPDATED'
   | 'DEADLINE_APPROACHING'
-  | 'MENTION';
+  | 'MENTION'
+  | 'TIMER_STARTED';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -179,6 +180,7 @@ export interface ApiOrganization {
 export interface ApiTeam {
   id: string;
   name: string;
+  code?: string;
   description?: string;
   orgId: string;
   createdBy?: string;
@@ -192,12 +194,13 @@ export interface ApiTeam {
 export type TeamRole = 'owner' | 'admin' | 'manager' | 'member';
 
 export interface ApiTeamMember {
-  id?: string;
+  id: string;
   userId: string;
   teamId: string;
-  teamRole: TeamRole;
-  joinedAt?: string;
-  user: ApiUser;
+  /** Field name in TeamMemberResponseDto (request body uses teamRole) */
+  role: TeamRole;
+  joinedAt: string;
+  user?: ApiUser;
 }
 
 // ─── Project ──────────────────────────────────────────────────────────────────
@@ -606,4 +609,197 @@ export interface SearchResults {
   tasks: ApiTask[];
   clients: ApiClient[];
   users: ApiUser[];
+}
+
+// ─── Finance ──────────────────────────────────────────────────────────────────
+
+export type OverheadCategory =
+  | 'RENT' | 'UTILITIES' | 'INTERNET' | 'SOFTWARE_LICENSES' | 'OFFICE_SUPPLIES'
+  | 'MARKETING' | 'TRAINING' | 'INSURANCE' | 'LEGAL' | 'OTHER';
+
+// Exchange Rates
+export interface ApiExchangeRate {
+  id: string;
+  orgId: string;
+  rateDate: string;
+  uzsPerUsd: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CreateExchangeRateDto {
+  rateDate: string;
+  uzsPerUsd: number;
+  source: string;
+}
+export type UpdateExchangeRateDto = Partial<CreateExchangeRateDto>;
+
+// Hourly Rates
+export interface ApiHourlyRate {
+  id: string;
+  userId: string;
+  effectiveDate: string;
+  salaryUzs: number;
+  bonusUzs: number;
+  taxUzs: number;
+  jssmUzs: number;
+  adminShareUzs: number;
+  equipmentShareUzs: number;
+  overheadShareUzs: number;
+  totalMonthlyCostUzs: number;
+  hourlyRateUzs: number;
+  hourlyRateUsd: number;
+  exchangeRateUsed: number;
+  productionEmployeeCount: number;
+  workingHoursPerMonth: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CreateHourlyRateDto {
+  userId: string;
+  effectiveDate: string;
+  salaryUzs: number;
+  bonusUzs: number;
+  adminShareUzs: number;
+  equipmentShareUzs: number;
+  overheadShareUzs: number;
+  workingHoursPerMonth: number;
+  notes?: string;
+}
+
+// Overhead Costs
+export interface ApiOverheadCost {
+  id: string;
+  orgId: string;
+  periodYear: number;
+  periodMonth: number;
+  category: OverheadCategory;
+  amountUzs: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CreateOverheadCostDto {
+  periodYear: number;
+  periodMonth: number;
+  category: OverheadCategory;
+  amountUzs: number;
+  description?: string;
+}
+export type UpdateOverheadCostDto = Partial<CreateOverheadCostDto>;
+export interface OverheadCategorySummary {
+  category: string;
+  total: number;
+}
+
+// Equipment
+export interface ApiEquipment {
+  id: string;
+  orgId: string;
+  name: string;
+  category: string;
+  purchaseDate: string;
+  purchaseCostUzs: number;
+  usefulLifeMonths: number;
+  residualValueUzs: number;
+  monthlyAmortizationUzs: number;
+  isActive: boolean;
+  serialNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CreateEquipmentDto {
+  name: string;
+  category: string;
+  purchaseDate: string;
+  purchaseCostUzs: number;
+  usefulLifeMonths: number;
+  residualValueUzs: number;
+  serialNumber?: string;
+}
+export type UpdateEquipmentDto = Partial<CreateEquipmentDto>;
+export interface AmortizationSummary {
+  total: number;
+  itemCount: number;
+}
+
+// Project Finance
+export interface ApiProjectPlan {
+  id: string;
+  projectId: string;
+  version: number;
+  isCurrent: boolean;
+  contractValueUzs: number;
+  contractValueUsd?: number;
+  contractSignedDate?: string;
+  plannedHoursTotal: number;
+  avgHourlyRateUzs: number;
+  riskCoefficient: number;
+  mizanCostUzs: number;
+  plannedProfitUzs: number;
+  plannedMarginPct: number;
+  exchangeRateAtSigning: number;
+  notes?: string;
+  createdAt: string;
+}
+export interface CreateProjectPlanDto {
+  contractValueUzs: number;
+  contractValueUsd?: number;
+  contractSignedDate?: string;
+  riskCoefficient?: number;
+  notes?: string;
+}
+export interface ApiProjectMonthlyCost {
+  id: string;
+  projectId: string;
+  year: number;
+  month: number;
+  totalHours: number;
+  totalCostUzs: number;
+  totalCostUsd: number;
+  employeeCount: number;
+  isFinalized: boolean;
+}
+export interface ApiPlanVsFact {
+  plan: ApiProjectPlan;
+  factToDateUzs: number;
+  remainingUzs: number;
+  burnRateUzs: number;
+  estimatedFinalCostUzs: number;
+}
+
+// Finance Analytics
+export interface FinanceOverviewData {
+  periodYear: number;
+  periodMonth: number;
+  totalPayrollCostUzs: number;
+  totalOverheadUzs: number;
+  totalEquipmentAmortizationUzs: number;
+  totalCostUzs: number;
+  totalContractValueUzs: number;
+  grossProfitUzs: number;
+  grossMarginPct: number;
+}
+export interface ProjectProfitabilityItem {
+  projectId: string;
+  projectName: string;
+  planUzs: number;
+  factToDateUzs: number;
+  varianceUzs: number;
+  variancePct: number;
+  monthsElapsed: number;
+  estimatedFinalCostUzs: number;
+}
+export interface EmployeeCostBreakdownItem {
+  userId: string;
+  name: string;
+  hours: number;
+  costUzs: number;
+  costUsd: number;
+}
+export interface DepartmentCostItem {
+  department: string;
+  costUzs: number;
+  employeeCount: number;
 }

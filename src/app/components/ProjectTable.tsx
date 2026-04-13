@@ -1,14 +1,16 @@
-import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 import { useState, useEffect } from 'react';
-import { X, Folder, Building2, Calendar, CalendarCheck, Workflow, Layers, Tag } from 'lucide-react';
+import {
+  Hash,
+  FileText,
+  User,
+  Calendar,
+  Clock,
+  TrendingUp,
+  CheckCircle,
+  Layers,
+  Tag,
+  Folder,
+} from 'lucide-react';
 import { TaskDetailPage } from './TaskDetailPage';
 import { AddTaskRow } from './AddTaskRow';
 import { ColumnEditorModal, ColumnConfig } from './ColumnEditorModal';
@@ -21,151 +23,22 @@ import { useProjects } from '@/hooks/api/useProjects';
 import type { Project } from '@/types/domain';
 
 // Legacy mock fallback — replaced by useProjects() hook below
-const _LEGACY_PROJECTS: Project[] = [
-  {
-    id: 'PRJ-001',
-    name: 'Bobur residence interior',
-    client: 'Bobur Construction',
-    dateStart: '12 Jan 2024',
-    dateEnd: '15 Mar 2024',
-    holat: 45,
-    status: 'In Progress',
-    size: 'Large',
-    kvadratura: '1250 m²',
-    type: 'Interior',
-    progress: 45,
-    description: 'Comprehensive interior design project covering full residential space with custom furniture and lighting solutions.',
-    complexity: 'High',
-    duration: '8-10 weeks'
-  },
-  {
-    id: 'PRJ-002',
-    name: 'Bobur residence interior',
-    client: 'Elite Developers',
-    dateStart: '15 Jan 2024',
-    dateEnd: '20 Mar 2024',
-    holat: 80,
-    status: 'Burning',
-    size: 'Medium',
-    kvadratura: '850 m²',
-    type: 'Residential',
-    progress: 80,
-    description: 'Modern residential development with emphasis on sustainable materials and energy-efficient solutions.',
-    complexity: 'Medium',
-    duration: '6-8 weeks'
-  },
-  {
-    id: 'PRJ-003',
-    name: 'Bobur residence interior',
-    client: 'Modern Spaces LLC',
-    dateStart: '20 Jan 2024',
-    dateEnd: '25 Mar 2024',
-    holat: 75,
-    status: 'In Progress',
-    size: 'Large',
-    kvadratura: '1500 m²',
-    type: 'Commercial',
-    progress: 75,
-    description: 'Large-scale commercial space transformation including office layouts, collaboration zones, and reception areas.',
-    complexity: 'High',
-    duration: '10-12 weeks'
-  },
-  {
-    id: 'PRJ-004',
-    name: 'Bobur residence interior',
-    client: 'Urban Design Co',
-    dateStart: '25 Jan 2024',
-    dateEnd: '30 Mar 2024',
-    holat: 50,
-    status: 'Start',
-    size: 'Small',
-    kvadratura: '450 m²',
-    type: 'Interior',
-    progress: 50,
-    description: 'Boutique interior redesign focused on maximizing space efficiency and aesthetic appeal.',
-    complexity: 'Low',
-    duration: '4-6 weeks'
-  },
-  {
-    id: 'PRJ-005',
-    name: 'Bobur residence interior',
-    client: 'Prestige Homes',
-    dateStart: '01 Feb 2024',
-    dateEnd: '05 Apr 2024',
-    holat: 88,
-    status: 'End',
-    size: 'Large',
-    kvadratura: '1800 m²',
-    type: 'Residential',
-    progress: 88,
-    description: 'Luxury residential project featuring high-end finishes, smart home integration, and custom millwork.',
-    complexity: 'High',
-    duration: '12-14 weeks'
-  },
-  {
-    id: 'PRJ-006',
-    name: 'Bobur residence interior',
-    client: 'Skyline Architects',
-    dateStart: '05 Feb 2024',
-    dateEnd: '10 Apr 2024',
-    holat: 60,
-    status: 'In Progress',
-    size: 'Medium',
-    kvadratura: '950 m²',
-    type: 'Commercial',
-    progress: 60,
-    description: 'Commercial office renovation with flexible workspace design and modern amenities.',
-    complexity: 'Medium',
-    duration: '7-9 weeks'
-  },
-  {
-    id: 'PRJ-007',
-    name: 'Bobur residence interior',
-    client: 'Heritage Builders',
-    dateStart: '10 Feb 2024',
-    dateEnd: '15 Apr 2024',
-    holat: 62,
-    status: 'Late',
-    size: 'Medium',
-    kvadratura: '750 m²',
-    type: 'Interior',
-    progress: 62,
-    description: 'Heritage building interior restoration balancing historical character with contemporary functionality.',
-    complexity: 'Medium',
-    duration: '8-10 weeks'
-  },
-  {
-    id: 'PRJ-008',
-    name: 'Bobur residence interior',
-    client: 'Zenith Properties',
-    dateStart: '15 Feb 2024',
-    dateEnd: '20 Apr 2024',
-    holat: 70,
-    status: 'In Progress',
-    size: 'Large',
-    kvadratura: '1650 m²',
-    type: 'Residential',
-    progress: 70,
-    description: 'Premium residential development with landscaping integration and outdoor living spaces.',
-    complexity: 'High',
-    duration: '10-12 weeks'
-  },
-];
+const _LEGACY_PROJECTS: Project[] = [];
 
-const getStatusColor = (status: string) => {
+const getStatusStyle = (status: string) => {
   switch (status) {
     case 'In Progress':
-      return 'status-progress';
+      return { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', text: '#60A5FA', dot: '#60A5FA' };
     case 'Start':
-      return 'status-start';
+      return { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.25)', text: '#60A5FA', dot: '#60A5FA' };
     case 'Burning':
-      return 'status-burning';
+      return { bg: 'rgba(249, 115, 22, 0.1)', border: 'rgba(249, 115, 22, 0.3)', text: '#FB923C', dot: '#FB923C' };
     case 'End':
-      return 'status-end';
+      return { bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.3)', text: '#22C55E', dot: '#22C55E' };
     case 'Late':
-      return 'status-late';
+      return { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.3)', text: '#EF4444', dot: '#EF4444' };
     default:
-      return 'status-progress';
+      return { bg: 'rgba(156, 163, 175, 0.1)', border: 'rgba(156, 163, 175, 0.3)', text: '#9CA3AF', dot: '#9CA3AF' };
   }
 };
 
@@ -212,9 +85,9 @@ export function ProjectTable() {
 
   // Handler for updating project data
   const handleUpdateProject = (projectId: string, field: keyof Project, value: any) => {
-    setProjectsData(prevProjects => 
-      prevProjects.map(project => 
-        project.id === projectId 
+    setProjectsData(prevProjects =>
+      prevProjects.map(project =>
+        project.id === projectId
           ? { ...project, [field]: value }
           : project
       )
@@ -249,10 +122,7 @@ export function ProjectTable() {
     assignee?: string;
     dueDate?: string;
   }) => {
-    // Generate new project ID
     const newId = `PRJ-${String(projectsData.length + 1).padStart(3, '0')}`;
-    
-    // Create new project from task data
     const newProject: Project = {
       id: newId,
       name: task.title,
@@ -269,8 +139,6 @@ export function ProjectTable() {
       complexity: 'Medium',
       duration: '4-6 weeks'
     };
-    
-    // Add to projects list
     setProjectsData(prevProjects => [...prevProjects, newProject]);
   };
 
@@ -290,309 +158,315 @@ export function ProjectTable() {
         onReset={resetColumns}
       />
 
-      <div className="rounded-xl shadow-sm border overflow-hidden" style={{
+      <div className="rounded-xl overflow-hidden" style={{
         backgroundColor: 'var(--surface-primary)',
-        borderColor: 'var(--border-primary)'
+        border: '1px solid var(--border-primary)'
       }}>
         <ProjectsToolbar />
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b" style={{ borderColor: 'var(--border-primary)' }}>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--surface-secondary)'
-                  }}
-                >
-                  {getColumnById('id')?.label || 'ID'}
-                </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--surface-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Folder 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('name')?.label || 'Project Name'}
+              <tr style={{
+                borderBottom: '1px solid var(--border-secondary)',
+                backgroundColor: 'var(--surface-secondary)',
+                height: '52px'
+              }}>
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)', width: '80px' }}>
+                  <div className="flex items-center gap-1.5">
+                    <Hash style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('id')?.label || 'ID'}</span>
                   </div>
                 </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--surface-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Building2 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('client')?.label || 'Client'}
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)', minWidth: '280px' }}>
+                  <div className="flex items-center gap-1.5">
+                    <FileText style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('name')?.label || 'Project Name'}</span>
                   </div>
                 </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('dateStart')?.label || 'Date Start'}
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <User style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('client')?.label || 'Client'}</span>
                   </div>
                 </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <CalendarCheck 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('dateEnd')?.label || 'Date End'}
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('dateStart')?.label || 'Date Start'}</span>
                   </div>
                 </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  {getColumnById('holat')?.label || 'Holat'}
-                </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Workflow 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('status')?.label || 'Status'}
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <Clock style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('dateEnd')?.label || 'Date End'}</span>
                   </div>
                 </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Layers 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('size')?.label || 'Project Size'}
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)', minWidth: '140px' }}>
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('holat')?.label || 'Progress'}</span>
                   </div>
                 </th>
-                <th 
-                  className="px-6 py-4 text-left text-xs uppercase tracking-wider font-medium"
-                  style={{ 
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Tag 
-                      className="w-3.5 h-3.5" 
-                      strokeWidth={1.5}
-                      style={{ opacity: 0.5 }}
-                    />
-                    {getColumnById('type')?.label || 'Project Type'}
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('status')?.label || 'Status'}</span>
+                  </div>
+                </th>
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <Layers style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('size')?.label || 'Size'}</span>
+                  </div>
+                </th>
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <Tag style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('type')?.label || 'Type'}</span>
                   </div>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {projectsData.map((project) => (
-                <tr 
-                  key={project.id} 
-                  className="border-b transition-colors cursor-pointer" 
-                  style={{ borderColor: 'var(--border-secondary)' }}
-                  onClick={() => handleProjectClick(project)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <td className="px-6 py-4" style={{ color: 'var(--text-secondary)' }}>{project.id}</td>
-                  <td 
-                    className="px-6 py-4"
-                    onClick={(e) => {
-                      // Check if clicking on the editable cell - if in edit mode, don't open detail
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-                        e.stopPropagation();
-                      }
+              {projectsData.map((project, index) => {
+                const statusStyle = getStatusStyle(project.status);
+                return (
+                  <tr
+                    key={project.id}
+                    className="group transition-colors cursor-pointer"
+                    style={{
+                      borderBottom: index !== projectsData.length - 1
+                        ? '1px solid rgba(255,255,255,0.03)'
+                        : 'none'
+                    }}
+                    onClick={() => handleProjectClick(project)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <EditableProjectCell
-                      field="name"
-                      value={project.name}
-                      onChange={(newName) => handleUpdateProject(project.id, 'name', newName)}
-                    />
-                  </td>
-                  <td 
-                    className="px-6 py-4"
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    <EditableProjectCell
-                      field="client"
-                      value={project.client}
-                      onChange={(newClient) => handleUpdateProject(project.id, 'client', newClient)}
-                    />
-                  </td>
-                  <td 
-                    className="px-6 py-4" 
-                    data-column-type="date"
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    <EditableProjectCell
-                      field="dateStart"
-                      value={project.dateStart}
-                      onChange={(newDate) => handleUpdateProject(project.id, 'dateStart', newDate)}
-                      rowData={project}
-                    />
-                  </td>
-                  <td 
-                    className="px-6 py-4" 
-                    data-column-type="date"
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    <EditableProjectCell
-                      field="dateEnd"
-                      value={project.dateEnd}
-                      onChange={(newDate) => handleUpdateProject(project.id, 'dateEnd', newDate)}
-                      rowData={project}
-                    />
-                  </td>
-                  <td 
-                    className="px-6 py-4" 
-                    style={{ backgroundColor: 'var(--status-start-bg)' }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Progress 
-                        value={project.holat} 
-                        className="flex-1 h-2 table-progress-bar"
-                        style={{
-                          backgroundColor: 'var(--surface-tertiary)'
-                        }}
-                      />
-                      <span className="text-sm min-w-[3ch]" style={{ color: 'var(--text-secondary)' }}>{project.holat}%</span>
-                    </div>
-                  </td>
-                  <td 
-                    className="px-6 py-4"
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    <EditableProjectCell
-                      field="status"
-                      value={project.status}
-                      onChange={(newStatus) => handleUpdateProject(project.id, 'status', newStatus)}
-                    />
-                  </td>
-                  <td className="px-6 py-4" data-column-type="meta" onClick={(e) => e.stopPropagation()}>
-                    <ProjectScopePopover
-                      size={project.size}
-                      kvadratura={project.kvadratura}
-                      type={project.type}
-                      description={project.description}
-                      complexity={project.complexity}
-                      duration={project.duration}
+                    {/* ID */}
+                    <td
+                      className="px-4 py-3"
+                      style={{ color: '#6B7280', fontSize: '13px', fontWeight: '500', verticalAlign: 'top' }}
                     >
-                      <button
-                        className="text-sm transition-all rounded px-2 py-1 -mx-2 -my-1 cursor-pointer"
-                        style={{ 
-                          color: 'var(--text-primary)',
-                          fontWeight: 500
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                          e.currentTarget.style.textDecoration = 'underline';
-                          e.currentTarget.style.textDecorationStyle = 'dotted';
-                          e.currentTarget.style.textUnderlineOffset = '2px';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.textDecoration = 'none';
+                      {project.id}
+                    </td>
+
+                    {/* Project Name */}
+                    <td
+                      className="px-4 py-3"
+                      style={{ verticalAlign: 'top' }}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Folder
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            color: 'var(--accent-primary)',
+                            fill: 'var(--accent-primary)',
+                            opacity: 0.8,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <EditableProjectCell
+                          field="name"
+                          value={project.name}
+                          onChange={(newName) => handleUpdateProject(project.id, 'name', newName)}
+                        />
+                      </div>
+                    </td>
+
+                    {/* Client */}
+                    <td
+                      className="px-4 py-3"
+                      style={{ verticalAlign: 'top' }}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <EditableProjectCell
+                        field="client"
+                        value={project.client}
+                        onChange={(newClient) => handleUpdateProject(project.id, 'client', newClient)}
+                      />
+                    </td>
+
+                    {/* Date Start */}
+                    <td
+                      className="px-4 py-3"
+                      style={{ color: '#6B7280', fontSize: '13px', verticalAlign: 'top' }}
+                      data-column-type="date"
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <EditableProjectCell
+                        field="dateStart"
+                        value={project.dateStart}
+                        onChange={(newDate) => handleUpdateProject(project.id, 'dateStart', newDate)}
+                        rowData={project}
+                      />
+                    </td>
+
+                    {/* Date End */}
+                    <td
+                      className="px-4 py-3"
+                      style={{ color: '#6B7280', fontSize: '13px', verticalAlign: 'top' }}
+                      data-column-type="date"
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <EditableProjectCell
+                        field="dateEnd"
+                        value={project.dateEnd}
+                        onChange={(newDate) => handleUpdateProject(project.id, 'dateEnd', newDate)}
+                        rowData={project}
+                      />
+                    </td>
+
+                    {/* Progress (holat) */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex-1 h-1.5 rounded-full overflow-hidden"
+                          style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', minWidth: '60px' }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{ width: `${project.holat}%`, backgroundColor: '#3B82F6' }}
+                          />
+                        </div>
+                        <span
+                          className="text-xs font-medium tabular-nums"
+                          style={{ color: '#9CA3AF', minWidth: '38px', textAlign: 'right' }}
+                        >
+                          {project.holat}%
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <div
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                        style={{
+                          backgroundColor: statusStyle.bg,
+                          border: `1px solid ${statusStyle.border}`
                         }}
                       >
-                        {project.size}
-                      </button>
-                    </ProjectScopePopover>
-                  </td>
-                  <td 
-                    className="px-6 py-4" 
-                    data-column-type="meta"
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    <EditableProjectCell
-                      field="type"
-                      value={project.type}
-                      onChange={(newType) => handleUpdateProject(project.id, 'type', newType)}
-                    />
-                  </td>
-                </tr>
-              ))}
-              
+                        <div
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: statusStyle.dot }}
+                        />
+                        <span
+                          className="text-xs font-medium whitespace-nowrap"
+                          style={{ color: statusStyle.text }}
+                        >
+                          {project.status}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Size */}
+                    <td className="px-4 py-3" data-column-type="meta" onClick={(e) => e.stopPropagation()}>
+                      <ProjectScopePopover
+                        size={project.size}
+                        kvadratura={project.kvadratura}
+                        type={project.type}
+                        description={project.description}
+                        complexity={project.complexity}
+                        duration={project.duration}
+                      >
+                        <button
+                          className="text-sm transition-all rounded px-2 py-0.5 -mx-2 cursor-pointer"
+                          style={{ color: 'var(--text-primary)', fontWeight: 500 }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
+                            e.currentTarget.style.textDecoration = 'underline';
+                            e.currentTarget.style.textDecorationStyle = 'dotted';
+                            e.currentTarget.style.textUnderlineOffset = '2px';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.textDecoration = 'none';
+                          }}
+                        >
+                          {project.size}
+                        </button>
+                      </ProjectScopePopover>
+                    </td>
+
+                    {/* Type */}
+                    <td
+                      className="px-4 py-3"
+                      data-column-type="meta"
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest('button')) {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <EditableProjectCell
+                        field="type"
+                        value={project.type}
+                        onChange={(newType) => handleUpdateProject(project.id, 'type', newType)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+
               {/* Add Task Row */}
-              <AddTaskRow 
+              {/* <AddTaskRow
                 onAddTask={handleAddTask}
                 colSpan={9}
                 mode="projects"
-              />
+              /> */}
             </tbody>
           </table>
         </div>
+
+        {/* Empty State */}
+        {projectsData.length === 0 && (
+          <div
+            className="flex flex-col items-center justify-center py-16"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            <Folder
+              style={{ width: '48px', height: '48px', color: '#6B7280', opacity: 0.3, marginBottom: '12px' }}
+            />
+            <p className="text-sm font-medium" style={{ color: '#9CA3AF' }}>No projects found</p>
+            <p className="text-xs mt-1" style={{ color: '#6B7280' }}>Add a new project to get started</p>
+          </div>
+        )}
       </div>
 
       {/* Project Detail Panel */}

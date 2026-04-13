@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Progress } from '../components/ui/progress';
 import { EmployeeProfile, type Employee } from '../components/EmployeeProfile';
 import { EmployeeProjectMatrix } from '../components/EmployeeProjectMatrix';
-import { useUsers } from '@/hooks/api/useUsers';
+import { useUsers, useOnlineUsers } from '@/hooks/api/useUsers';
 import { useTeamPerformance, useAnalyticsOverview } from '@/hooks/api/useAnalytics';
 import type { TeamMember } from '@/types/domain';
 
@@ -12,12 +12,12 @@ type PerfMember = { name: string; tasksCompleted: number; hoursLogged: number; p
 
 function mapToEmployee(member: TeamMember, perf?: PerfMember): Employee {
   const statusMap: Record<string, Employee['status']> = {
-    ACTIVE: 'working',
+    ACTIVE: 'idle',
     ON_LEAVE: 'idle',
     INACTIVE: 'offline',
     TERMINATED: 'offline',
   };
-  const empStatus = statusMap[member.status] ?? 'idle';
+  const empStatus = statusMap[member.status] ?? 'offline';
   const tasksCompleted = perf?.tasksCompleted ?? 0;
   const hoursLogged = perf?.hoursLogged ?? 0;
   return {
@@ -75,15 +75,21 @@ export function DashboardPage() {
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: teamPerf } = useTeamPerformance();
   const { data: overview } = useAnalyticsOverview();
+  const { data: onlineUserIds = [] } = useOnlineUsers();
 
   const employees = useMemo<Employee[]>(() => {
     const perfByName = new Map((teamPerf?.members ?? []).map((m) => [m.name, m]));
+    const onlineSet = new Set(onlineUserIds);
     return users.map((member) => {
       const override = localOverrides[member.id];
       if (override) return override;
-      return mapToEmployee(member, perfByName.get(member.name));
+      const emp = mapToEmployee(member, perfByName.get(member.name));
+      if (onlineSet.has(member.id)) {
+        return { ...emp, status: 'working' as const, lastActive: 'Online now' };
+      }
+      return emp;
     });
-  }, [users, teamPerf, localOverrides]);
+  }, [users, teamPerf, localOverrides, onlineUserIds]);
 
   const workingCount = employees.filter(e => e.status === 'working').length;
   const idleCount = employees.filter(e => e.status === 'idle').length;

@@ -11,7 +11,7 @@ export async function getTeam(id: string): Promise<ApiTeam> {
   return data;
 }
 
-export async function createTeam(dto: { name: string; description?: string }): Promise<ApiTeam> {
+export async function createTeam(dto: { name: string; code?: string; description?: string }): Promise<ApiTeam> {
   const { data } = await apiClient.post<ApiTeam>('/teams', dto);
   return data;
 }

@@ -949,7 +949,7 @@ export function ProjectTaskDetailOverlay({
                   </div>
 
                   {/* Subtasks - Fully Editable */}
-                  <div 
+                  {/* <div
                     className="pt-6 border-t"
                     style={{ borderColor: 'var(--border-secondary)' }}
                   >
@@ -967,17 +967,17 @@ export function ProjectTaskDetailOverlay({
                           key={subtask.id}
                           subtask={subtask}
                           onToggle={() => {
-                            setSubtasks(subtasks.map(s => 
+                            setSubtasks(subtasks.map(s =>
                               s.id === subtask.id ? { ...s, completed: !s.completed } : s
                             ));
                           }}
                           onUpdate={(title) => {
-                            setSubtasks(subtasks.map(s => 
+                            setSubtasks(subtasks.map(s =>
                               s.id === subtask.id ? { ...s, title } : s
                             ));
                           }}
                           onStatusChange={(status) => {
-                            setSubtasks(subtasks.map(s => 
+                            setSubtasks(subtasks.map(s =>
                               s.id === subtask.id ? { ...s, status } : s
                             ));
                           }}
@@ -987,8 +987,7 @@ export function ProjectTaskDetailOverlay({
                         />
                       ))}
 
-                      {/* Add New Subtask */}
-                      <div 
+                      <div
                         className="flex items-center gap-2 p-2 rounded-lg border-2 border-dashed transition-colors"
                         style={{
                           borderColor: 'var(--border-secondary)',
@@ -1018,10 +1017,10 @@ export function ProjectTaskDetailOverlay({
                         />
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Checklist - Fully Editable */}
-                  <div 
+                  {/* <div
                     className="pt-6 border-t"
                     style={{ borderColor: 'var(--border-secondary)' }}
                   >
@@ -1048,7 +1047,7 @@ export function ProjectTaskDetailOverlay({
                         >
                           <button
                             onClick={() => {
-                              setChecklist(checklist.map(c => 
+                              setChecklist(checklist.map(c =>
                                 c.id === item.id ? { ...c, checked: !c.checked } : c
                               ));
                             }}
@@ -1063,7 +1062,7 @@ export function ProjectTaskDetailOverlay({
                           <InlineEditableText
                             value={item.text}
                             onChange={(text) => {
-                              setChecklist(checklist.map(c => 
+                              setChecklist(checklist.map(c =>
                                 c.id === item.id ? { ...c, text } : c
                               ));
                             }}
@@ -1087,8 +1086,7 @@ export function ProjectTaskDetailOverlay({
                         </div>
                       ))}
 
-                      {/* Add New Checklist Item */}
-                      <div 
+                      <div
                         className="flex items-center gap-2 p-2 rounded-lg border-2 border-dashed transition-colors"
                         style={{
                           borderColor: 'var(--border-secondary)',
@@ -1118,10 +1116,10 @@ export function ProjectTaskDetailOverlay({
                         />
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Attachments - Upload, Preview, Delete */}
-                  <div 
+                  {/* <div
                     className="pt-6 border-t"
                     style={{ borderColor: 'var(--border-secondary)' }}
                   >
@@ -1189,7 +1187,7 @@ export function ProjectTaskDetailOverlay({
                     ) : (
                       <div
                         className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors"
-                        style={{ 
+                        style={{
                           borderColor: 'var(--border-secondary)',
                           backgroundColor: 'transparent'
                         }}
@@ -1211,7 +1209,7 @@ export function ProjectTaskDetailOverlay({
                         </p>
                       </div>
                     )}
-                  </div>
+                  </div> */}
                 </div>
               )}
 

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from './query-keys';
 import * as teamService from '@/services/team.service';
-import type { ApiTeam } from '@/types/api';
+import type { ApiTeam, TeamRole } from '@/types/api';
 
 export function useTeams() {
   return useQuery({
@@ -29,7 +29,7 @@ export function useTeamMembers(teamId: string) {
 export function useCreateTeam() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: { name: string; description?: string }) => teamService.createTeam(dto),
+    mutationFn: (dto: { name: string; code?: string; description?: string }) => teamService.createTeam(dto),
     onSuccess: (newTeam) => {
       qc.setQueryData<ApiTeam[]>(queryKeys.teams.list(), (old = []) => [...old, newTeam]);
     },
@@ -64,8 +64,19 @@ export function useDeleteTeam() {
 export function useAddTeamMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ teamId, userId, role }: { teamId: string; userId: string; role?: string }) =>
+    mutationFn: ({ teamId, userId, role }: { teamId: string; userId: string; role?: TeamRole }) =>
       teamService.addTeamMember(teamId, userId, role),
+    onSuccess: (_, { teamId }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) });
+    },
+  });
+}
+
+export function useUpdateTeamMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, userId, teamRole }: { teamId: string; userId: string; teamRole: TeamRole }) =>
+      teamService.updateTeamMemberRole(teamId, userId, teamRole),
     onSuccess: (_, { teamId }) => {
       qc.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) });
     },

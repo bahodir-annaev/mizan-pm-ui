@@ -17,12 +17,14 @@ import {
   List,
   LayoutGrid,
   GanttChart,
-  FileText
+  FileText,
+  DollarSign
 } from 'lucide-react';
 import { WorksTable } from '../components/WorksTable';
 import { BoardView } from '../components/BoardView';
 import { GanttView } from '../components/GanttView';
 import { AddTaskModal } from '../components/AddTaskModal';
+import { ProjectFinanceTab } from '../components/finance/ProjectFinanceTab';
 import { useProject } from '@/hooks/api/useProjects';
 import { useBoardTasks } from '@/hooks/api/useTasks';
 import type { Task } from '@/types/domain';
@@ -94,7 +96,7 @@ export function ProjectDetailPage({ projectId: propProjectId, onBack: propOnBack
   const projectId = params.id ?? propProjectId ?? '';
   const onBack = propOnBack ?? (() => navigate('/projects'));
 
-  const [activeTab, setActiveTab] = useState<'tasks' | 'overview' | 'board' | 'gantt' | 'files'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'overview' | 'board' | 'gantt' | 'files' | 'finance'>('tasks');
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
@@ -106,6 +108,7 @@ export function ProjectDetailPage({ projectId: propProjectId, onBack: propOnBack
     { key: 'board',    label: 'Task Board', icon: LayoutGrid },
     { key: 'gantt',    label: 'Gantt',      icon: GanttChart },
     { key: 'files',    label: 'Files',      icon: FileText },
+    { key: 'finance',  label: 'Finance',    icon: DollarSign },
   ] as const;
 
   // Compute task stats from board tasks
@@ -418,6 +421,10 @@ export function ProjectDetailPage({ projectId: propProjectId, onBack: propOnBack
               </button>
             </div>
           </div>
+        )}
+
+        {activeTab === 'finance' && (
+          <ProjectFinanceTab projectId={projectId} />
         )}
       </div>
 

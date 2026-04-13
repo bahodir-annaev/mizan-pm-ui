@@ -13,6 +13,11 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { TeamPage } from './pages/TeamPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { FinanceDashboardPage } from './pages/finance/FinanceDashboardPage';
+import { ExchangeRatesPage } from './pages/finance/ExchangeRatesPage';
+import { OverheadCostsPage } from './pages/finance/OverheadCostsPage';
+import { EquipmentPage } from './pages/finance/EquipmentPage';
+import { HourlyRatesPage } from './pages/finance/HourlyRatesPage';
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +53,16 @@ export const router = createBrowserRouter([
       { path: 'team', element: <TeamPage /> },
       { path: 'clients', element: <ClientsPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      {
+        path: 'finance',
+        children: [
+          { index: true, element: <FinanceDashboardPage /> },
+          { path: 'exchange-rates', element: <ExchangeRatesPage /> },
+          { path: 'overhead-costs', element: <OverheadCostsPage /> },
+          { path: 'equipment', element: <EquipmentPage /> },
+          { path: 'hourly-rates', element: <HourlyRatesPage /> },
+        ],
+      },
     ],
   },
   {
