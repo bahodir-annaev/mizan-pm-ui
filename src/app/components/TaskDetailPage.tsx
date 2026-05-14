@@ -36,6 +36,8 @@ interface Work {
     initials: string;
     color: string;
   }>;
+  teamId?: string;
+  teamName?: string;
   status: string;
   statusKey?: string;
   priority: string;
@@ -325,6 +327,17 @@ export function TaskDetailPage({ task, onBack }: TaskDetailPageProps) {
                     </span>
                   </div>
                 )}
+
+                {/* Team */}
+                <div>
+                  <label className="text-xs mb-2 flex items-center gap-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                    <Users className="w-3.5 h-3.5" />
+                    Team
+                  </label>
+                  <span className="text-sm" style={{ color: task.teamName ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                    {task.teamName || '—'}
+                  </span>
+                </div>
 
                 {/* Acceptance */}
                 <div>

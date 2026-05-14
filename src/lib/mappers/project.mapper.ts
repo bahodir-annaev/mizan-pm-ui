@@ -66,6 +66,8 @@ export function mapApiProjectToProject(api: ApiProject): Project {
     clientId: api.clientId,
     clientName: api.client?.name,
     client: api.client?.name,
+    teamId: api.teamId ?? undefined,
+    teamName: api.team?.name,
     memberCount: api.members?.length,
     createdAt: api.createdAt,
     updatedAt: api.updatedAt,

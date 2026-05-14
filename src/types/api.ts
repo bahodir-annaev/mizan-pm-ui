@@ -198,9 +198,11 @@ export interface ApiTeamMember {
   userId: string;
   teamId: string;
   /** Field name in TeamMemberResponseDto (request body uses teamRole) */
-  role: TeamRole;
+  teamRole: TeamRole;
   joinedAt: string;
   user?: ApiUser;
+  // legacy
+  role: TeamRole;
 }
 
 // ─── Project ──────────────────────────────────────────────────────────────────
@@ -226,6 +228,7 @@ export interface ApiProject {
   code?: string;
   parentId?: string | null;
   teamId?: string | null;
+  team?: ApiTeam;
   priority?: string | null;
   estimatedDuration?: string | null;
   color?: string | null;
@@ -268,6 +271,26 @@ export interface UpdateProjectDto extends Partial<CreateProjectDto> {
   isPinned?: boolean;
 }
 
+export type TeamAssignmentStatus = 'pending' | 'active' | 'completed';
+
+export interface ApiTeamAssignment {
+  id: string;
+  projectId: string;
+  teamId: string;
+  team?: ApiTeam;
+  status: TeamAssignmentStatus;
+  notes?: string | null;
+  activatedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTeamAssignmentDto {
+  teamId: string;
+  notes?: string;
+}
+
 // ─── Task ─────────────────────────────────────────────────────────────────────
 
 export interface ApiTask {
@@ -284,6 +307,8 @@ export interface ApiTask {
   actualHours?: number;
   progress?: number;
   projectId: string;
+  teamId?: string | null;
+  team?: ApiTeam;
   parentId?: string;
   assignee?: ApiUser;
   assignees?: ApiUser[];
@@ -614,8 +639,16 @@ export interface SearchResults {
 // ─── Finance ──────────────────────────────────────────────────────────────────
 
 export type OverheadCategory =
-  | 'RENT' | 'UTILITIES' | 'INTERNET' | 'SOFTWARE_LICENSES' | 'OFFICE_SUPPLIES'
-  | 'MARKETING' | 'TRAINING' | 'INSURANCE' | 'LEGAL' | 'OTHER';
+  | 'RENT'
+  | 'UTILITIES'
+  | 'INTERNET'
+  | 'SOFTWARE_LICENSES'
+  | 'OFFICE_SUPPLIES'
+  | 'MARKETING'
+  | 'TRAINING'
+  | 'INSURANCE'
+  | 'LEGAL'
+  | 'OTHER';
 
 // Exchange Rates
 export interface ApiExchangeRate {

@@ -45,7 +45,7 @@ export function TeamPage() {
         return {
           membershipId: m.id,
           userId: m.userId,
-          role: m.role,
+          role: m.teamRole,
           joinedAt: m.joinedAt,
           name: user?.name ?? m.userId,
           email: user?.email ?? '',

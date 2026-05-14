@@ -10,6 +10,7 @@ import {
   Layers,
   Tag,
   Folder,
+  Users,
 } from 'lucide-react';
 import { TaskDetailPage } from './TaskDetailPage';
 import { AddTaskRow } from './AddTaskRow';
@@ -20,6 +21,7 @@ import { ProjectScopePopover } from './ProjectScopePopover';
 import { ProjectTaskDetailOverlay } from './ProjectTaskDetailOverlay';
 import { ProjectsToolbar } from './ProjectsToolbar';
 import { useProjects } from '@/hooks/api/useProjects';
+import { useTeams } from '@/hooks/api/useTeams';
 import type { Project } from '@/types/domain';
 
 // Legacy mock fallback — replaced by useProjects() hook below
@@ -47,6 +49,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'id', label: 'ID', visible: true, locked: false },
   { id: 'name', label: 'Project Name', visible: true, locked: false },
   { id: 'client', label: 'Client', visible: true, locked: false },
+  { id: 'team', label: 'Team', visible: true, locked: false },
   { id: 'dateStart', label: 'Date Start', visible: true, locked: false },
   { id: 'dateEnd', label: 'Date End', visible: true, locked: false },
   { id: 'holat', label: 'Holat', visible: true, locked: false },
@@ -57,6 +60,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 
 export function ProjectTable() {
   const { data: serverProjects = _LEGACY_PROJECTS } = useProjects();
+  const { data: teams = [] } = useTeams();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
@@ -191,6 +195,12 @@ export function ProjectTable() {
                 </th>
                 <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
                   <div className="flex items-center gap-1.5">
+                    <Users style={{ width: '13px', height: '13px' }} />
+                    <span className="text-xs font-semibold">{getColumnById('team')?.label || 'Team'}</span>
+                  </div>
+                </th>
+                <th className="px-4 text-left" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="flex items-center gap-1.5">
                     <Calendar style={{ width: '13px', height: '13px' }} />
                     <span className="text-xs font-semibold">{getColumnById('dateStart')?.label || 'Date Start'}</span>
                   </div>
@@ -301,6 +311,29 @@ export function ProjectTable() {
                         value={project.client}
                         onChange={(newClient) => handleUpdateProject(project.id, 'client', newClient)}
                       />
+                    </td>
+
+                    {/* Team */}
+                    <td className="px-4 py-3" style={{ verticalAlign: 'top' }}>
+                      {project.teamName ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium"
+                          style={{
+                            backgroundColor: 'var(--surface-secondary)',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid var(--border-secondary)',
+                          }}
+                        >
+                          <Users style={{ width: '11px', height: '11px' }} />
+                          {project.teamName}
+                        </span>
+                      ) : project.teamId ? (
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          {teams.find(t => t.id === project.teamId)?.name ?? '—'}
+                        </span>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>—</span>
+                      )}
                     </td>
 
                     {/* Date Start */}

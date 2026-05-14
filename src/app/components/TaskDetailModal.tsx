@@ -67,6 +67,7 @@ interface TaskDetail {
   id: string;
   title: string;
   projectName?: string;
+  teamName?: string;
   assignee: {
     name: string;
     initials: string;
@@ -80,6 +81,7 @@ interface TaskDetail {
   priority: string;
   dateStart?: string;
   dateEnd?: string;
+  estimatedHours?: number;
   controlPoint?: string;
   label?: string;
   participants?: Participant[];
@@ -241,20 +243,38 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate }: TaskDetailM
           style={{ borderColor: 'var(--border-primary)' }}
         >
           <div className="flex-1">
-            {/* Project Name */}
-            {editedTask.projectName && (
-              <div className="mb-1">
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    color: 'var(--accent-primary)',
-                    letterSpacing: '-0.01em'
-                  }}
-                >
-                  {editedTask.projectName}
-                </span>
+            {/* Project / Team breadcrumb */}
+            {(editedTask.projectName || editedTask.teamName) && (
+              <div className="mb-1 flex items-center gap-2">
+                {editedTask.projectName && (
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      color: 'var(--accent-primary)',
+                      letterSpacing: '-0.01em'
+                    }}
+                  >
+                    {editedTask.projectName}
+                  </span>
+                )}
+                {editedTask.projectName && editedTask.teamName && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>·</span>
+                )}
+                {editedTask.teamName && (
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      color: 'var(--text-secondary)',
+                      letterSpacing: '-0.01em'
+                    }}
+                  >
+                    {editedTask.teamName}
+                  </span>
+                )}
               </div>
             )}
 
@@ -316,7 +336,7 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate }: TaskDetailM
           <div className="grid grid-cols-2 gap-3 mb-4">
             {/* Start Date */}
             <div>
-              <label 
+              <label
                 className="flex items-center gap-1.5 text-xs font-medium mb-1.5"
                 style={{ color: 'var(--text-secondary)' }}
               >
@@ -340,7 +360,7 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate }: TaskDetailM
 
             {/* Due Date */}
             <div>
-              <label 
+              <label
                 className="flex items-center gap-1.5 text-xs font-medium mb-1.5"
                 style={{ color: 'var(--text-secondary)' }}
               >
@@ -361,6 +381,31 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate }: TaskDetailM
                 />
               </div>
             </div>
+          </div>
+
+          {/* Estimated duration */}
+          <div className="mb-4" style={{ width: '50%', paddingRight: '6px' }}>
+            <label
+              className="flex items-center gap-1.5 text-xs font-medium mb-1.5"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <Clock style={{ width: '14px', height: '14px', color: '#9CA3AF', strokeWidth: 1.5 }} />
+              Estimated duration (days)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={editedTask.estimatedHours != null ? editedTask.estimatedHours / 24 : ''}
+              onChange={(e) => handleUpdate('estimatedHours', e.target.value ? parseFloat(e.target.value) * 24 : undefined)}
+              placeholder="e.g. 2.5"
+              className="w-full px-3 py-2 rounded-lg outline-none text-xs"
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                border: '1px solid var(--border-primary)',
+                color: 'var(--text-primary)'
+              }}
+            />
           </div>
 
           {/* Progress */}

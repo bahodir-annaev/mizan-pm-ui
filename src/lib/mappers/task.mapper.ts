@@ -42,6 +42,8 @@ export function mapApiTaskToTask(api: ApiTask): Task {
     actualHours: api.actualHours,
     progress: api.progress,
     projectId: api.projectId,
+    teamId: api.teamId ?? api.project?.teamId ?? undefined,
+    teamName: api.team?.name ?? api.project?.team?.name,
     parentId: api.parentId,
     assignee: primaryAssignee,
     participants,
@@ -49,7 +51,7 @@ export function mapApiTaskToTask(api: ApiTask): Task {
     createdAt: api.createdAt,
     updatedAt: api.updatedAt,
     // Legacy aliases
-    project: api.project,
+    project: api.project as any,
     dateStart: api.startDate,
     dateEnd: api.dueDate,
     acceptance: api.acceptance,
@@ -66,7 +68,7 @@ export function mapTaskToCreateRequest(task: Partial<Task> & { projectId: string
     dueDate: task.dueDate,
     estimatedHours: task.estimatedHours,
     projectId: task.projectId,
-    parentId: task.parentId,
+    parentId: task.parentId ?? undefined,
     assigneeId: task.assignee?.id,
   };
 }

@@ -124,6 +124,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
     priority: 'MEDIUM' as TaskPriority,
     startDate: '',
     dueDate: '',
+    estimatedDays: '',
     labels: [] as string[],
     typeOfWork: '' as WorkType | '',
     volume: '',
@@ -146,6 +147,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
         priority: (initialData.priorityKey || initialData.priority || 'MEDIUM') as TaskPriority,
         startDate: initialData.dateStart || initialData.startDate || '',
         dueDate: initialData.dateEnd || initialData.dueDate || '',
+        estimatedDays: initialData.estimatedHours != null ? String(initialData.estimatedHours / 24) : '',
         labels: initialData.labels || [],
         typeOfWork: resolveWorkType(initialData.workType || '') as WorkType | '',
         volume: initialData.volume != null ? String(initialData.volume) : '',
@@ -166,6 +168,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
         priority: 'MEDIUM' as TaskPriority,
         startDate: '',
         dueDate: '',
+        estimatedDays: '',
         labels: [],
         typeOfWork: '' as WorkType | '',
         volume: '',
@@ -224,6 +227,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
     priority: formData.priority,
     startDate: formData.startDate || undefined,
     dueDate: formData.dueDate || undefined,
+    estimatedHours: formData.estimatedDays ? parseFloat(formData.estimatedDays) * 24 : undefined,
     workType: formData.typeOfWork || undefined,
     parentId: parentTaskId || undefined,
   });
@@ -237,6 +241,7 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
     status: formData.status as TaskStatus || undefined,
     startDate: formData.startDate || undefined,
     dueDate: formData.dueDate || undefined,
+    estimatedHours: formData.estimatedDays ? parseFloat(formData.estimatedDays) * 24 : undefined,
     workType: formData.typeOfWork || undefined,
     progress: formData.progress,
   });
@@ -534,6 +539,30 @@ export function AddTaskModal({ isOpen, onClose, initialData, mode = 'create', de
                       <Calendar style={{ width: '14px', height: '14px', position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
                     </div>
                   </div>
+                </div>
+
+                {/* Estimated days */}
+                <div className="w-1/2 pr-2">
+                  <label
+                    className="block text-xs font-medium mb-2"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Estimated duration (days)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={formData.estimatedDays}
+                    onChange={(e) => setFormData({ ...formData, estimatedDays: e.target.value })}
+                    placeholder="e.g. 2.5"
+                    className="w-full px-4 py-2.5 rounded-lg outline-none text-xs"
+                    style={{
+                      backgroundColor: 'var(--surface-secondary)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
                 </div>
               </div>
 

@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api-client';
 import { mapApiProjectToProject } from '@/lib/mappers';
 import type { Project } from '@/types/domain';
-import type { ApiProject, CreateProjectDto, UpdateProjectDto } from '@/types/api';
+import type { ApiProject, CreateProjectDto, UpdateProjectDto, ApiTeamAssignment, CreateTeamAssignmentDto } from '@/types/api';
 
 export async function getProjects(): Promise<Project[]> {
   const { data } = await apiClient.get<ApiProject[]>('/projects');
@@ -34,5 +34,20 @@ export async function toggleProjectPin(id: string): Promise<Project> {
 
 export async function getProjectMembers(id: string) {
   const { data } = await apiClient.get(`/projects/${id}/members`);
+  return data;
+}
+
+export async function getTeamAssignments(projectId: string): Promise<ApiTeamAssignment[]> {
+  const { data } = await apiClient.get<ApiTeamAssignment[]>(`/projects/${projectId}/team-assignments`);
+  return data;
+}
+
+export async function createTeamAssignment(projectId: string, dto: CreateTeamAssignmentDto): Promise<ApiTeamAssignment> {
+  const { data } = await apiClient.post<ApiTeamAssignment>(`/projects/${projectId}/team-assignments`, dto);
+  return data;
+}
+
+export async function activateTeamAssignment(projectId: string): Promise<ApiTeamAssignment> {
+  const { data } = await apiClient.post<ApiTeamAssignment>(`/projects/${projectId}/team-assignments/activate`);
   return data;
 }

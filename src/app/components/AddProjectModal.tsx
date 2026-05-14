@@ -7,10 +7,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCreateProject } from '@/hooks/api/useProjects';
 import { useClients } from '@/hooks/api/useClients';
+import { useTeams } from '@/hooks/api/useTeams';
 import type { CreateProjectDto, ProjectType } from '@/types/api';
 import { 
-  X, 
-  ChevronDown, 
+  X,
+  ChevronDown,
   Calendar,
   Building2,
   Layers,
@@ -24,7 +25,8 @@ import {
   Play,
   Activity,
   Clock,
-  CircleDot
+  CircleDot,
+  Users,
 } from 'lucide-react';
 // import { useBudget, parseBudgetInput, formatBudget } from '@/app/contexts/BudgetContext';
 
@@ -114,12 +116,14 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const createProject = useCreateProject();
   const { data: clients = [] } = useClients();
+  const { data: teams = [] } = useTeams();
 
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     clientId: '',
+    teamId: '',
     projectType: '',
     priority: 'Medium',
     startDate: '',
@@ -131,6 +135,7 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
     cost: '',
     labels: [] as string[],
   });
+  const [teamError, setTeamError] = useState(false);
 
   // Populate form data when initialData changes (edit mode)
   useEffect(() => {
@@ -139,6 +144,7 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
         title: initialData.name || '',
         description: initialData.description || '',
         clientId: initialData.clientId || '',
+        teamId: initialData.teamId || '',
         projectType: initialData.type || '',
         priority: initialData.priority || 'Medium',
         startDate: initialData.dateStart || '',
@@ -150,12 +156,13 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
         cost: initialData.cost || '',
         labels: initialData.labels || [],
       });
+      setTeamError(false);
     } else if (mode === 'create') {
-      // Reset form for create mode
       setFormData({
         title: '',
         description: '',
         clientId: '',
+        teamId: '',
         projectType: '',
         priority: 'Medium',
         startDate: '',
@@ -167,6 +174,7 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
         cost: '',
         labels: [],
       });
+      setTeamError(false);
     }
   }, [initialData, mode]);
 
@@ -187,19 +195,29 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
     projectType: formData.projectType ? (PROJECT_TYPE_MAP[formData.projectType] ?? 'OTHER') : undefined,
     priority: formData.priority ? (PRIORITY_MAP[formData.priority] ?? formData.priority) : undefined,
     clientId: formData.clientId || undefined,
+    teamId: formData.teamId || undefined,
     startDate: formData.startDate || undefined,
     dueDate: formData.endDate || undefined,
     areaSqm: formData.area ? parseFloat(formData.area) : undefined,
     budget: formData.cost ? parseFloat(formData.cost) : undefined,
   });
 
+  const validate = () => {
+    if (!formData.title.trim()) return false;
+    if (!formData.teamId) {
+      setTeamError(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleSave = () => {
-    if (!formData.title.trim()) return;
+    if (!validate()) return;
     createProject.mutate(buildDto(), { onSuccess: () => onClose() });
   };
 
   const handleSaveAndView = () => {
-    if (!formData.title.trim()) return;
+    if (!validate()) return;
     createProject.mutate(buildDto(), { onSuccess: () => onClose() });
   };
 
@@ -314,6 +332,79 @@ export function AddProjectModal({ isOpen, onClose, initialData, mode = 'create' 
                   Assignment
                 </h3>
                 
+                {/* Team — mandatory */}
+                <div>
+                  <label
+                    className="block text-xs font-medium mb-2"
+                    style={{ color: teamError ? 'var(--status-burning)' : 'var(--text-secondary)' }}
+                  >
+                    Team *
+                  </label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTeamError(false);
+                        const dropdown = document.getElementById('team-dropdown');
+                        if (dropdown) dropdown.classList.toggle('hidden');
+                      }}
+                      className="w-full px-3 py-2 rounded-lg text-left transition-all flex items-center justify-between"
+                      style={{
+                        backgroundColor: 'var(--surface-secondary)',
+                        border: `1px solid ${teamError ? 'var(--status-burning)' : 'var(--border-secondary)'}`,
+                        color: formData.teamId ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users style={{ width: '14px', height: '14px' }} />
+                        <span className="text-xs">
+                          {teams.find(t => t.id === formData.teamId)?.name ?? 'Select team'}
+                        </span>
+                      </div>
+                      <ChevronDown style={{ width: '14px', height: '14px' }} />
+                    </button>
+                    <div
+                      id="team-dropdown"
+                      className="hidden absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden shadow-lg z-20"
+                      style={{
+                        backgroundColor: 'var(--surface-primary)',
+                        border: '1px solid var(--border-primary)',
+                      }}
+                    >
+                      {teams.map((team) => (
+                        <button
+                          key={team.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, teamId: team.id });
+                            setTeamError(false);
+                            document.getElementById('team-dropdown')?.classList.add('hidden');
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs transition-colors"
+                          style={{
+                            color: 'var(--text-primary)',
+                            backgroundColor: formData.teamId === team.id ? 'var(--surface-secondary)' : 'transparent',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--surface-hover)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = formData.teamId === team.id ? 'var(--surface-secondary)' : 'transparent'; }}
+                        >
+                          {team.name}
+                        </button>
+                      ))}
+                      {teams.length === 0 && (
+                        <div className="px-3 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                          No teams available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {teamError && (
+                    <p className="mt-1 text-xs" style={{ color: 'var(--status-burning)' }}>
+                      Please select a team
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   {/* Client */}
                   <SelectField

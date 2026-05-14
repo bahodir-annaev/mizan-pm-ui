@@ -1,16 +1,12 @@
 import { Calendar, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
 
 interface CompactDateCellProps {
   startDate?: string;
   dueDate?: string;
-  isOverdue?: boolean;
+  isDone?: boolean;
 }
 
-export function CompactDateCell({ startDate, dueDate, isOverdue = false }: CompactDateCellProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  
-  // Format date to show day + month (e.g., "15 Jan")
+export function CompactDateCell({ startDate, dueDate, isDone = false }: CompactDateCellProps) {
   const formatCompactDate = (dateString?: string) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
@@ -19,92 +15,67 @@ export function CompactDateCell({ startDate, dueDate, isOverdue = false }: Compa
     return `${day} ${month}`;
   };
 
-  // Check if due date is overdue
-  const isDueOverdue = () => {
-    if (!dueDate) return false;
+  const getDueDateState = (): 'overdue' | 'warning' | 'normal' => {
+    if (!dueDate || isDone) return 'normal';
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const due = new Date(dueDate);
     due.setHours(0, 0, 0, 0);
-    return due < today;
+    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 'overdue';
+    if (diffDays <= 3) return 'warning';
+    return 'normal';
   };
 
-  const overdueStatus = isDueOverdue();
-  const showOverdueState = overdueStatus || isOverdue;
+  const dueDateState = getDueDateState();
+  const dueDateColor =
+    dueDateState === 'overdue' ? 'var(--status-late)' :
+    dueDateState === 'warning' ? '#f97316' :
+    'var(--text-tertiary)';
 
   return (
-    <div
-      className="relative flex items-center gap-2 min-w-[100px] rounded-md px-2 py-1.5 -mx-2 -my-1.5"
-      style={{
-        backgroundColor: isHovered 
-          ? 'var(--surface-hover)' 
-          : 'transparent',
-        transition: 'background-color 150ms ease-out'
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Start Date - Always Visible */}
+    <div className="flex items-center gap-2">
+      {/* Start Date */}
       <div className="flex items-center gap-1.5">
-        <Calendar 
-          className="w-3.5 h-3.5 flex-shrink-0" 
-          style={{ 
-            color: 'var(--text-tertiary)', 
-            opacity: 0.5
-          }} 
+        <Calendar
+          className="w-3.5 h-3.5 flex-shrink-0"
+          style={{ color: 'var(--text-tertiary)', opacity: 0.5 }}
         />
         <span
           className="text-sm whitespace-nowrap"
-          style={{
-            color: isHovered ? 'var(--text-secondary)' : 'var(--text-tertiary)',
-            fontSize: '13px',
-            fontWeight: 400,
-            transition: 'color 120ms ease-out'
-          }}
+          style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}
         >
           {formatCompactDate(startDate)}
         </span>
       </div>
 
-      {/* Due Date - Expandable on Hover */}
+      {/* Due Date */}
       {dueDate && (
-        <div
-          className="flex items-center gap-1.5"
-          style={{
-            maxWidth: isHovered ? '120px' : '0',
-            opacity: isHovered ? 1 : 0,
-            overflow: 'hidden',
-            transition: 'max-width 150ms ease-out, opacity 150ms ease-out',
-          }}
-        >
-          <ArrowRight 
+        <div className="flex items-center gap-1.5">
+          <ArrowRight
             className="w-3 h-3 flex-shrink-0"
             style={{
-              color: showOverdueState ? 'var(--status-late)' : 'var(--text-tertiary)',
-              opacity: 0.5
+              color: dueDateState !== 'normal' ? dueDateColor : 'var(--text-tertiary)',
+              opacity: 0.5,
             }}
           />
           <span
             className="text-sm whitespace-nowrap"
             style={{
-              color: showOverdueState ? 'var(--status-late)' : 'var(--text-tertiary)',
+              color: dueDateColor,
               fontSize: '13px',
-              fontWeight: showOverdueState ? 500 : 400,
+              fontWeight: dueDateState !== 'normal' ? 500 : 400,
             }}
           >
             {formatCompactDate(dueDate)}
           </span>
+          {dueDateState !== 'normal' && (
+            <div
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: dueDateColor }}
+            />
+          )}
         </div>
-      )}
-
-      {/* Overdue indicator dot - Static, no pulse */}
-      {showOverdueState && !isHovered && (
-        <div
-          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-          style={{
-            backgroundColor: 'var(--status-late)',
-          }}
-        />
       )}
     </div>
   );

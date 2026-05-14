@@ -131,7 +131,10 @@ function TreeConnectors({ depth, hasChildren, isExpanded, isLastSibling, ancesto
     );
   }
   const spineX = (depth - 1) * TREE_INDENT + 5;
-  const branchEndX = 42 + (depth - 1) * TREE_INDENT;
+  // X position where children of this node will draw their own spine — used for the dot and outgoing line
+  const nextSpineX = depth * TREE_INDENT + 5;
+  // For nodes with children the branch terminates at the dot (nextSpineX); leaf nodes extend further toward the title
+  const branchEndX = hasChildren ? nextSpineX : 42 + (depth - 1) * TREE_INDENT;
   const svgWidth = 50 + (depth - 1) * TREE_INDENT;
   return (
     <svg style={{ position: 'absolute', left: '27px', top: '0', width: `${svgWidth}px`, height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 1 }}
@@ -148,6 +151,14 @@ function TreeConnectors({ depth, hasChildren, isExpanded, isLastSibling, ancesto
       )}
       <path d={`M ${spineX} 50 Q ${spineX} 60, ${spineX + 10} 60 L ${branchEndX} 60`}
         fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+      {/* Dot at the junction for non-root nodes that are also parents */}
+      {hasChildren && (
+        <circle cx={nextSpineX} cy="60" r="3" fill="#9ca3af" opacity="0.6" vectorEffect="non-scaling-stroke" />
+      )}
+      {/* Outgoing line to children — drawn at nextSpineX so children's spine aligns with this line */}
+      {hasChildren && isExpanded && (
+        <line x1={nextSpineX} y1="63" x2={nextSpineX} y2="100" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" vectorEffect="non-scaling-stroke" />
+      )}
     </svg>
   );
 }
@@ -291,6 +302,8 @@ interface Work {
   description?: string;
   project?: string;
   projectId?: string;
+  teamId?: string;
+  teamName?: string;
   assignee: {
     id?: string;
     name: string;
@@ -332,6 +345,8 @@ function taskToWork(task: Task | TreeTask): Work {
     description: task.description,
     project: task?.project?.name ?? (task as any).project,
     projectId: task.projectId,
+    teamId: task.teamId,
+    teamName: task.teamName,
     assignee: task.assignee
       ? { id: task.assignee.id, name: task.assignee.name, initials: task.assignee.initials, color: task.assignee.color }
       : { name: 'Unassigned', initials: '?', color: 'bg-gray-400' },
@@ -737,6 +752,18 @@ function TaskRow({
         </div>
       </td>
 
+      {/* Team */}
+      <td className="px-4 py-4">
+        {work.teamName ? (
+          <div className="flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 flex-shrink-0 opacity-30 group-hover:opacity-50 transition-opacity" style={{ color: 'var(--text-tertiary)' }} />
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{work.teamName}</span>
+          </div>
+        ) : (
+          <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>—</span>
+        )}
+      </td>
+
       {/* Assignee */}
       <td className="pl-4 pr-1 py-4">
         <AvatarWithTooltip name={work.assignee.name} initials={work.assignee.initials} color={work.assignee.color} />
@@ -771,7 +798,7 @@ function TaskRow({
 
       {/* Dates */}
       <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-        <CompactDateCell startDate={work.dateStart} dueDate={work.dateEnd} />
+        <CompactDateCell startDate={work.dateStart} dueDate={work.dateEnd} isDone={work.statusKey === 'DONE'} />
       </td>
 
       {/* Progress */}
@@ -818,6 +845,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'id', label: 'ID', visible: true, locked: false },
   { id: 'title', label: 'Task title', visible: true, locked: false },
   { id: 'project', label: 'Project', visible: true, locked: false },
+  { id: 'team', label: 'Team', visible: true, locked: false },
   { id: 'assignee', label: 'Assignee', visible: true, locked: false },
   { id: 'participants', label: 'Participants', visible: true, locked: false },
   { id: 'workflow', label: 'Workflow', visible: true, locked: false },
@@ -1089,6 +1117,12 @@ export function WorksTable({ projectId, filters = DEFAULT_FILTERS }: WorksTableP
                     <SortIndicator field="project" sortConfigs={sortConfigs} />
                   </button>
                 </th>
+                <th className="px-4 py-2.5 text-left">
+                  <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                    <Users className="w-3.5 h-3.5 opacity-60" />
+                    <span>Team</span>
+                  </div>
+                </th>
                 <th className="pl-4 pr-2 py-2.5 text-left">
                   <button className="group flex items-center gap-1.5 text-xs font-medium select-none"
                     style={{ color: sortConfigs.some(s => s.field === 'assignee') ? 'var(--accent-primary)' : 'var(--text-secondary)' }}
@@ -1157,7 +1191,7 @@ export function WorksTable({ projectId, filters = DEFAULT_FILTERS }: WorksTableP
               {activeTasksCount > 0 && (
                 <>
                   <tr>
-                    <td colSpan={13} className="px-4 py-2 border-b" style={{ 
+                    <td colSpan={14} className="px-4 py-2 border-b" style={{ 
                       backgroundColor: 'var(--surface-primary)',
                       borderColor: 'var(--border-secondary)'
                     }}>
@@ -1186,12 +1220,12 @@ export function WorksTable({ projectId, filters = DEFAULT_FILTERS }: WorksTableP
 
                 const dividerRows = isLastActiveRoot ? [
                   <tr key={`${work.id}-divider-space`}>
-                    <td colSpan={13} className="px-4 py-0 h-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <td colSpan={14} className="px-4 py-0 h-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                       <div className="h-full" />
                     </td>
                   </tr>,
                   <tr key={`${work.id}-completed-label`}>
-                    <td colSpan={13} className="px-4 py-2 border-b" style={{ backgroundColor: 'var(--surface-primary)', borderColor: 'var(--border-secondary)' }}>
+                    <td colSpan={14} className="px-4 py-2 border-b" style={{ backgroundColor: 'var(--surface-primary)', borderColor: 'var(--border-secondary)' }}>
                       <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>Other Tasks</span>
                     </td>
                   </tr>,
@@ -1222,7 +1256,7 @@ export function WorksTable({ projectId, filters = DEFAULT_FILTERS }: WorksTableP
               {/* Add Task Row */}
               <AddTaskRow 
                 onAddTask={handleAddTask}
-                colSpan={13}
+                colSpan={14}
                 mode="works"
               />
             </tbody>

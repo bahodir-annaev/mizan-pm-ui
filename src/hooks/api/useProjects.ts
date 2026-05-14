@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from './query-keys';
 import * as projectService from '@/services/project.service';
 import type { Project } from '@/types/domain';
-import type { CreateProjectDto, UpdateProjectDto } from '@/types/api';
+import type { CreateProjectDto, UpdateProjectDto, CreateTeamAssignmentDto } from '@/types/api';
 
 export function useProjects() {
   return useQuery({
@@ -84,6 +84,38 @@ export function useToggleProjectPin() {
       qc.setQueryData<Project[]>(queryKeys.projects.list(), (old = []) =>
         old.map((p) => (p.id === updated.id ? updated : p)),
       );
+    },
+  });
+}
+
+export function useTeamAssignments(projectId: string) {
+  return useQuery({
+    queryKey: queryKeys.projects.teamAssignments(projectId),
+    queryFn: () => projectService.getTeamAssignments(projectId),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateTeamAssignment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, dto }: { projectId: string; dto: CreateTeamAssignmentDto }) =>
+      projectService.createTeamAssignment(projectId, dto),
+    onSuccess: (_, { projectId }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.projects.teamAssignments(projectId) });
+      qc.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) });
+    },
+  });
+}
+
+export function useActivateTeamAssignment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId: string) => projectService.activateTeamAssignment(projectId),
+    onSuccess: (_, projectId) => {
+      qc.invalidateQueries({ queryKey: queryKeys.projects.teamAssignments(projectId) });
+      qc.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) });
+      qc.invalidateQueries({ queryKey: queryKeys.projects.list() });
     },
   });
 }

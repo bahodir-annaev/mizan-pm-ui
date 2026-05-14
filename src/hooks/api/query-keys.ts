@@ -7,6 +7,7 @@ export const queryKeys = {
     members: (id: string) => [...queryKeys.projects.all, id, 'members'] as const,
     files: (id: string) => [...queryKeys.projects.all, id, 'files'] as const,
     timeReport: (id: string) => [...queryKeys.projects.all, id, 'time-report'] as const,
+    teamAssignments: (id: string) => [...queryKeys.projects.all, id, 'team-assignments'] as const,
   },
   tasks: {
     all: ['tasks'] as const,

@@ -19,16 +19,13 @@ export function mapApiTeamToTeam(api: ApiTeam): Team {
  * Enrich a raw team membership record with user display data.
  * Pass a Map<userId, TeamMember> built from useUsers() for O(1) lookup.
  */
-export function enrichTeamMember(
-  membership: ApiTeamMember,
-  userMap: Map<string, TeamMember>,
-): TeamMemberDetail {
+export function enrichTeamMember(membership: ApiTeamMember, userMap: Map<string, TeamMember>): TeamMemberDetail {
   const user = userMap.get(membership.userId);
   return {
     membershipId: membership.id,
     teamId: membership.teamId,
     userId: membership.userId,
-    role: membership.role,
+    role: membership.teamRole,
     joinedAt: membership.joinedAt,
     name: user?.name ?? membership.userId,
     email: user?.email ?? '',

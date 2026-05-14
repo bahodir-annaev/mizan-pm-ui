@@ -24,9 +24,35 @@ export interface Project {
   clientId?: string;
   clientName?: string;
   client?: string; // alias for clientName (legacy component compat)
+  teamId?: string;
+  teamName?: string;
   memberCount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMemberDetail {
+  membershipId: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  name: string;
+  email: string;
+  position?: string;
+  avatarUrl?: string;
+  initials: string;
+  color: string;
 }
 
 export interface Task {
@@ -45,6 +71,8 @@ export interface Task {
   progress?: number;
   code?: string;
   projectId: string;
+  teamId?: string;
+  teamName?: string;
   parentId?: string | null;
   depth?: number; // 0 = root task
   position?: number; // sort order among siblings
